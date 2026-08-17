@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 <div align="center">
 
 # ✨ StyleVerse AI ✨
@@ -207,3 +208,7 @@ This project is licensed under the MIT License.
 [![GitHub](https://img.shields.io/badge/GitHub-KARTHIKEYADEVULAPALLY1-181717?style=for-the-badge&logo=github)](https://github.com/KARTHIKEYADEVULAPALLY1)
 
 </div>
+=======
+# StyleVerse-Ai-
+Frontend page of a fashion website 
+>>>>>>> c631fb6f1d43ff35e71aeeaf8acd1c7c101cbd18
