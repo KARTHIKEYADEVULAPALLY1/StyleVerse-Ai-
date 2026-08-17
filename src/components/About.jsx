@@ -1,46 +1,16 @@
 import { motion } from 'framer-motion'
 import { Sparkles, Search, Shirt, TrendingUp, Shield, Zap, Globe, Users } from 'lucide-react'
 import Reveal from './ui/Reveal'
+import { aboutFeatures, aboutStats } from '../data/fashionData'
 
-const features = [
-  {
-    icon: Search,
-    title: 'AI Search Engine',
-    description: 'Search across millions of products from every major fashion retailer using natural language.'
-  },
-  {
-    icon: Shirt,
-    title: 'Virtual Try-On',
-    description: 'See how clothes fit your body type with our advanced AI-powered virtual fitting room.'
-  },
-  {
-    icon: TrendingUp,
-    title: 'Price Comparison',
-    description: 'We scan every store in real-time to find you the best deal on every product.'
-  },
-  {
-    icon: Shield,
-    title: 'Secure Shopping',
-    description: 'Shop with confidence knowing your data and payments are always protected.'
-  },
-  {
-    icon: Zap,
-    title: 'Instant Results',
-    description: 'Get personalized recommendations in milliseconds with our lightning-fast AI.'
-  },
-  {
-    icon: Globe,
-    title: 'Global Brands',
-    description: 'Access fashion from 500+ brands across the globe, all in one place.'
-  }
-]
-
-const stats = [
-  { value: '10M+', label: 'Products Indexed' },
-  { value: '500+', label: 'Brands' },
-  { value: '94%', label: 'Fit Accuracy' },
-  { value: '2M+', label: 'Happy Users' }
-]
+const featureIcons = {
+  Search,
+  Shirt,
+  TrendingUp,
+  Shield,
+  Zap,
+  Globe
+}
 
 export default function About() {
   return (
@@ -69,7 +39,7 @@ export default function About() {
         {/* Stats */}
         <Reveal className="mb-16">
           <div className="grid grid-cols-2 lg:grid-cols-4 gap-6">
-            {stats.map((stat, i) => (
+            {aboutStats.map((stat, i) => (
               <motion.div
                 key={stat.label}
                 initial={{ opacity: 0, y: 20 }}
@@ -87,24 +57,28 @@ export default function About() {
 
         {/* Features Grid */}
         <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-6">
-          {features.map((feature, i) => (
-            <Reveal key={feature.title} delay={i * 0.1}>
-              <motion.div
-                whileHover={{ y: -8 }}
-                transition={{ type: 'spring', stiffness: 300, damping: 20 }}
-                className="group relative rounded-4xl glass dark:glass p-8 h-full overflow-hidden"
-              >
-                <div className="absolute inset-0 bg-gradient-to-br from-primary/10 to-secondary/10 opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
-                <div className="relative z-10">
-                  <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-primary/20 to-secondary/20 flex items-center justify-center mb-6 group-hover:scale-110 transition-transform duration-300">
-                    <feature.icon className="w-6 h-6 text-primary" />
+          {aboutFeatures.map((feature, i) => {
+            const Icon = featureIcons[feature.icon]
+
+            return (
+              <Reveal key={feature.title} delay={i * 0.1}>
+                <motion.div
+                  whileHover={{ y: -8 }}
+                  transition={{ type: 'spring', stiffness: 300, damping: 20 }}
+                  className="group relative rounded-4xl glass dark:glass p-8 h-full overflow-hidden"
+                >
+                  <div className="absolute inset-0 bg-gradient-to-br from-primary/10 to-secondary/10 opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
+                  <div className="relative z-10">
+                    <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-primary/20 to-secondary/20 flex items-center justify-center mb-6 group-hover:scale-110 transition-transform duration-300">
+                      <Icon className="w-6 h-6 text-primary" />
+                    </div>
+                    <h3 className="font-display text-xl font-bold mb-3">{feature.title}</h3>
+                    <p className="text-gray-600 dark:text-gray-300 leading-relaxed">{feature.description}</p>
                   </div>
-                  <h3 className="font-display text-xl font-bold mb-3">{feature.title}</h3>
-                  <p className="text-gray-600 dark:text-gray-300 leading-relaxed">{feature.description}</p>
-                </div>
-              </motion.div>
-            </Reveal>
-          ))}
+                </motion.div>
+              </Reveal>
+            )
+          })}
         </div>
 
         {/* Mission */}

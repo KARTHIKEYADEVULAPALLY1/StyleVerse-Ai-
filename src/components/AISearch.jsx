@@ -3,30 +3,27 @@ import { motion, AnimatePresence } from 'framer-motion'
 import { Search, Mic, Image as ImageIcon, Sparkles, TrendingUp } from 'lucide-react'
 import Reveal from './ui/Reveal'
 import MagneticButton from './ui/MagneticButton'
+import { aiSearchPlaceholders, trendingSearches } from '../data/fashionData'
 
-const placeholderExamples = [
-  'Black oversized hoodie under ₹1500',
-  'Korean streetwear',
-  'White sneakers for college',
-  'Formal office outfit'
-]
-
-const trendingSearches = [
-  'Oversized tees',
-  'Y2K fashion',
-  'Minimalist watches',
-  'Streetwear sneakers',
-  'Sustainable fashion',
-  'Athleisure'
-]
-
-export default function AISearch() {
+export default function AISearch({
+  query,
+  onQueryChange,
+  category,
+  onCategoryChange,
+  brand,
+  onBrandChange,
+  maxPrice,
+  onMaxPriceChange,
+  categories,
+  brands,
+  priceOptions,
+  resultCount
+}) {
   const [placeholderIndex, setPlaceholderIndex] = useState(0)
-  const [query, setQuery] = useState('')
 
   useEffect(() => {
     const interval = setInterval(() => {
-      setPlaceholderIndex((prev) => (prev + 1) % placeholderExamples.length)
+      setPlaceholderIndex((prev) => (prev + 1) % aiSearchPlaceholders.length)
     }, 3000)
     return () => clearInterval(interval)
   }, [])
@@ -49,7 +46,6 @@ export default function AISearch() {
 
         <Reveal delay={0.2}>
           <div className="relative">
-            {/* Glow effect */}
             <div className="absolute -inset-1 bg-gradient-to-r from-primary/20 to-secondary/20 blur-2xl rounded-4xl" />
 
             <div className="relative glass dark:glass rounded-4xl p-2 flex items-center gap-2">
@@ -61,8 +57,8 @@ export default function AISearch() {
                       key={placeholderIndex}
                       type="text"
                       value={query}
-                      onChange={(e) => setQuery(e.target.value)}
-                      placeholder={placeholderExamples[placeholderIndex]}
+                      onChange={(e) => onQueryChange(e.target.value)}
+                      placeholder={aiSearchPlaceholders[placeholderIndex]}
                       initial={{ opacity: 0, y: 10 }}
                       animate={{ opacity: 1, y: 0 }}
                       exit={{ opacity: 0, y: -10 }}
@@ -89,26 +85,80 @@ export default function AISearch() {
           </div>
         </Reveal>
 
-        {/* Trending */}
-        <Reveal delay={0.4} className="mt-8">
-          <div className="flex items-center gap-2 mb-4">
-            <TrendingUp className="w-4 h-4 text-primary" />
-            <span className="text-sm text-gray-500 dark:text-gray-400">Trending now</span>
+        <Reveal delay={0.4} className="mt-8 space-y-5">
+          <div className="flex items-center justify-between gap-4">
+            <div className="flex items-center gap-2">
+              <TrendingUp className="w-4 h-4 text-primary" />
+              <span className="text-sm text-gray-500 dark:text-gray-400">Trending now</span>
+            </div>
+            <span className="text-xs tracking-wide text-gray-500 dark:text-gray-400 uppercase">
+              {resultCount} results
+            </span>
           </div>
+
           <div className="flex flex-wrap gap-2">
             {trendingSearches.map((tag, i) => (
               <motion.button
                 key={tag}
+                type="button"
                 initial={{ opacity: 0, scale: 0.8 }}
                 whileInView={{ opacity: 1, scale: 1 }}
                 viewport={{ once: true }}
                 transition={{ delay: i * 0.05 }}
                 whileHover={{ scale: 1.05 }}
+                onClick={() => onQueryChange(tag)}
                 className="px-4 py-2 rounded-full glass dark:glass text-sm hover:bg-primary/10 dark:hover:bg-primary/10 transition-colors"
               >
                 {tag}
               </motion.button>
             ))}
+          </div>
+
+          <div className="grid gap-3 sm:grid-cols-3">
+            <label className="flex flex-col gap-2 text-sm text-gray-600 dark:text-gray-300">
+              <span>Category</span>
+              <select
+                value={category}
+                onChange={(event) => onCategoryChange(event.target.value)}
+                className="rounded-2xl glass dark:glass px-3 py-2.5 text-sm outline-none border border-white/10 bg-transparent"
+              >
+                {categories.map((item) => (
+                  <option key={item} value={item} className="bg-[#0A0A0F] text-white">
+                    {item}
+                  </option>
+                ))}
+              </select>
+            </label>
+
+            <label className="flex flex-col gap-2 text-sm text-gray-600 dark:text-gray-300">
+              <span>Brand</span>
+              <select
+                value={brand}
+                onChange={(event) => onBrandChange(event.target.value)}
+                className="rounded-2xl glass dark:glass px-3 py-2.5 text-sm outline-none border border-white/10 bg-transparent"
+              >
+                {brands.map((item) => (
+                  <option key={item} value={item} className="bg-[#0A0A0F] text-white">
+                    {item}
+                  </option>
+                ))}
+              </select>
+            </label>
+
+            <label className="flex flex-col gap-2 text-sm text-gray-600 dark:text-gray-300">
+              <span>Price</span>
+              <select
+                value={maxPrice ?? 'all'}
+                onChange={(event) => onMaxPriceChange(event.target.value === 'all' ? null : Number(event.target.value))}
+                className="rounded-2xl glass dark:glass px-3 py-2.5 text-sm outline-none border border-white/10 bg-transparent"
+              >
+                {priceOptions.map((option) => (
+                  <option key={option.label} value={option.value ?? 'all'} className="bg-[#0A0A0F] text-white">
+                    {option.label}
+                  </option>
+                ))}
+              </select>
+            </label>
           </div>
         </Reveal>
       </div>

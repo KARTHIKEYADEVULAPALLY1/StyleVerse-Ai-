@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { motion } from 'framer-motion'
 import { User, Mail, Phone, MapPin, Camera, Save, Ruler, Shirt, Palette, Package, CreditCard, Settings } from 'lucide-react'
+import { useAuth } from '../context/AuthContext'
 import Reveal from './ui/Reveal'
 import MagneticButton from './ui/MagneticButton'
 
@@ -15,6 +16,7 @@ const orderHistory = [
 ]
 
 export default function Profile() {
+  const { user } = useAuth()
   const [activeTab, setActiveTab] = useState('profile')
   const [saved, setSaved] = useState(false)
 
@@ -60,8 +62,8 @@ export default function Profile() {
                     <Camera className="w-4 h-4" />
                   </button>
                 </div>
-                <h3 className="font-display text-xl font-bold">Alex Johnson</h3>
-                <p className="text-sm text-gray-500 dark:text-gray-400">@alexj</p>
+                <h3 className="font-display text-xl font-bold">{user?.name || 'Alex Johnson'}</h3>
+                <p className="text-sm text-gray-500 dark:text-gray-400">{user?.email || '@alexj'}</p>
               </div>
 
               {/* Tabs */}
@@ -115,7 +117,8 @@ export default function Profile() {
                         <User className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
                         <input
                           type="text"
-                          defaultValue="Alex Johnson"
+                          defaultValue={user?.name || 'Alex Johnson'}
+                          key={user?.name || 'default-name'}
                           className="w-full pl-10 pr-4 py-3 rounded-xl glass dark:glass outline-none focus:border-primary transition-colors"
                         />
                       </div>
@@ -126,11 +129,13 @@ export default function Profile() {
                         <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
                         <input
                           type="email"
-                          defaultValue="alex@example.com"
+                          defaultValue={user?.email || 'alex@example.com'}
+                          key={user?.email || 'default-email'}
                           className="w-full pl-10 pr-4 py-3 rounded-xl glass dark:glass outline-none focus:border-primary transition-colors"
                         />
                       </div>
                     </div>
+
                     <div>
                       <label className="block text-sm font-medium mb-2">Phone</label>
                       <div className="relative">

@@ -1,86 +1,33 @@
 import { useRef } from 'react'
 import { motion } from 'framer-motion'
-import { ChevronLeft, ChevronRight, Star, Eye, Heart, Zap } from 'lucide-react'
+import { ChevronLeft, ChevronRight, Star, Eye, Heart, Zap, SearchX, Loader2, AlertTriangle } from 'lucide-react'
+import { useNavigate } from 'react-router-dom'
+import { useWishlist } from '../context/WishlistContext'
 import Reveal from './ui/Reveal'
 import TiltCard from './ui/TiltCard'
 
-const products = [
-  {
-    id: 1,
-    name: 'Oversized Graphic Hoodie',
-    brand: 'H&M',
-    price: '₹1,299',
-    originalPrice: '₹2,499',
-    rating: 4.5,
-    reviews: 2341,
-    match: 96,
-    image: 'https://images.unsplash.com/photo-1556821840-3a63f95609a7?w=400&q=80',
-    gradient: 'from-blue-500/20 to-purple-500/20'
-  },
-  {
-    id: 2,
-    name: 'Classic White Sneakers',
-    brand: 'Nike',
-    price: '₹4,999',
-    originalPrice: '₹6,999',
-    rating: 4.8,
-    reviews: 5120,
-    match: 94,
-    image: 'https://images.unsplash.com/photo-1542291026-7eec264c27ff?w=400&q=80',
-    gradient: 'from-red-500/20 to-orange-500/20'
-  },
-  {
-    id: 3,
-    name: 'Korean Streetwear Jacket',
-    brand: 'Zara',
-    price: '₹3,499',
-    originalPrice: '₹5,999',
-    rating: 4.3,
-    reviews: 1892,
-    match: 92,
-    image: 'https://images.unsplash.com/photo-1551028719-00167b16eac5?w=400&q=80',
-    gradient: 'from-green-500/20 to-teal-500/20'
-  },
-  {
-    id: 4,
-    name: 'Minimalist Watch',
-    brand: 'Daniel Wellington',
-    price: '₹8,999',
-    originalPrice: '₹12,999',
-    rating: 4.7,
-    reviews: 3456,
-    match: 90,
-    image: 'https://images.unsplash.com/photo-1524592094714-0f0654e20314?w=400&q=80',
-    gradient: 'from-yellow-500/20 to-amber-500/20'
-  },
-  {
-    id: 5,
-    name: 'Slim Fit Chinos',
-    brand: 'Uniqlo',
-    price: '₹1,999',
-    originalPrice: '₹3,499',
-    rating: 4.4,
-    reviews: 2876,
-    match: 89,
-    image: 'https://images.unsplash.com/photo-1473966968600-fa801b869a1a?w=400&q=80',
-    gradient: 'from-indigo-500/20 to-blue-500/20'
-  },
-  {
-    id: 6,
-    name: 'Leather Crossbody Bag',
-    brand: 'Fossil',
-    price: '₹5,499',
-    originalPrice: '₹7,999',
-    rating: 4.6,
-    reviews: 1987,
-    match: 88,
-    image: 'https://images.unsplash.com/photo-1548036328-c9fa89d128fa?w=400&q=80',
-    gradient: 'from-purple-500/20 to-pink-500/20'
-  }
+const productGradients = [
+  'from-blue-500/20 to-purple-500/20',
+  'from-red-500/20 to-orange-500/20',
+  'from-green-500/20 to-teal-500/20',
+  'from-yellow-500/20 to-amber-500/20',
+  'from-indigo-500/20 to-blue-500/20',
+  'from-purple-500/20 to-pink-500/20'
 ]
 
-export default function TrendingProducts() {
+export default function TrendingProducts({
+  products = [],
+  loading = false,
+  error = null,
+  title = 'Trending Products',
+  subtitle = "Curated by AI based on what's hot right now",
+  emptyTitle = 'No products match your search',
+  emptyMessage = 'Try adjusting the filters or searching for a different brand, category, or keyword.',
+  sectionId = 'explore',
+}) {
   const scrollRef = useRef(null)
+  const navigate = useNavigate()
+  const { isInWishlist, toggleWishlist } = useWishlist()
 
   const scroll = (direction) => {
     if (scrollRef.current) {
@@ -89,16 +36,78 @@ export default function TrendingProducts() {
     }
   }
 
+  const handleProductClick = (productId) => {
+    navigate(`/product/${productId}`)
+  }
+
+  if (loading) {
+    return (
+      <section id={sectionId} className="relative py-24 overflow-hidden">
+        <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8">
+          <Reveal>
+            <div className="rounded-4xl glass dark:glass p-16 text-center">
+              <div className="w-20 h-20 rounded-3xl bg-gradient-to-br from-primary/20 to-secondary/20 flex items-center justify-center mx-auto mb-6">
+                <Loader2 className="w-8 h-8 text-primary animate-spin" />
+              </div>
+              <h3 className="font-display text-2xl font-bold mb-2">Loading products…</h3>
+              <p className="text-gray-600 dark:text-gray-300">
+                Fetching the latest styles from our catalog.
+              </p>
+            </div>
+          </Reveal>
+        </div>
+      </section>
+    )
+  }
+
+  if (error) {
+    return (
+      <section id={sectionId} className="relative py-24 overflow-hidden">
+        <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8">
+          <Reveal>
+            <div className="rounded-4xl glass dark:glass p-16 text-center">
+              <div className="w-20 h-20 rounded-3xl bg-gradient-to-br from-red-500/20 to-orange-500/20 flex items-center justify-center mx-auto mb-6">
+                <AlertTriangle className="w-8 h-8 text-red-500" />
+              </div>
+              <h3 className="font-display text-2xl font-bold mb-2">Unable to load products</h3>
+              <p className="text-gray-600 dark:text-gray-300">{error}</p>
+            </div>
+          </Reveal>
+        </div>
+      </section>
+    )
+  }
+
+  if (!products.length) {
+    return (
+      <section id={sectionId} className="relative py-24 overflow-hidden">
+        <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8">
+          <Reveal>
+            <div className="rounded-4xl glass dark:glass p-16 text-center">
+              <div className="w-20 h-20 rounded-3xl bg-gradient-to-br from-primary/20 to-secondary/20 flex items-center justify-center mx-auto mb-6">
+                <SearchX className="w-8 h-8 text-primary" />
+              </div>
+              <h3 className="font-display text-2xl font-bold mb-2">{emptyTitle}</h3>
+              <p className="text-gray-600 dark:text-gray-300">
+                {emptyMessage}
+              </p>
+            </div>
+          </Reveal>
+        </div>
+      </section>
+    )
+  }
+
   return (
-    <section id="explore" className="relative py-24 overflow-hidden">
+    <section id={sectionId} className="relative py-24 overflow-hidden">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <Reveal className="flex items-end justify-between mb-12">
           <div>
             <h2 className="font-display text-4xl sm:text-5xl font-normal tracking-tight">
-              Trending <span className="text-shine">Products</span>
+              {title}
             </h2>
             <p className="mt-4 text-lg text-gray-600 dark:text-gray-300 font-light tracking-wide">
-              Curated by AI based on what's hot right now
+              {subtitle}
             </p>
           </div>
           <div className="hidden sm:flex gap-2">
@@ -121,66 +130,107 @@ export default function TrendingProducts() {
           ref={scrollRef}
           className="flex gap-6 overflow-x-auto no-scrollbar snap-x snap-mandatory pb-4"
         >
-          {products.map((product, i) => (
-            <motion.div
-              key={product.id}
-              initial={{ opacity: 0, y: 40 }}
-              whileInView={{ opacity: 1, y: 0 }}
-              viewport={{ once: true }}
-              transition={{ delay: i * 0.1, duration: 0.6 }}
-              className="snap-start shrink-0 w-[300px] sm:w-[340px]"
-            >
-              <TiltCard className="h-full">
-                <div className="group relative rounded-4xl overflow-hidden glass dark:glass h-full transition-all duration-500 hover:shadow-glow">
-                  {/* Image */}
-                  <div className="relative h-72 overflow-hidden">
-                    <img
-                      src={product.image}
-                      alt={product.name}
-                      className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110"
-                    />
-                    <div className={`absolute inset-0 bg-gradient-to-t ${product.gradient} opacity-0 group-hover:opacity-100 transition-opacity duration-500`} />
+          {products.map((product, i) => {
+            const priceValue = Number(String(product.price || '').replace(/[^\d]/g, ''))
+            const originalPriceValue = Number(String(product.originalPrice || product.original_price || '').replace(/[^\d]/g, ''))
+            const discountPercent = originalPriceValue > 0
+              ? Math.round((1 - priceValue / originalPriceValue) * 100)
+              : 0
+            const displayOriginalPrice = product.originalPrice || product.original_price
+            const reviews = 1800 + product.id * 700
+            const match = 88 + product.id
 
-                    {/* AI Match badge */}
-                    <div className="absolute top-4 left-4 flex items-center gap-1 px-3 py-1.5 rounded-full bg-black/50 backdrop-blur-md text-white text-xs font-semibold">
-                      <Zap className="w-3 h-3 text-yellow-400" />
-                      {product.match}% Match
-                    </div>
+            return (
+              <motion.div
+                key={product.id}
+                initial={{ opacity: 0, y: 40 }}
+                whileInView={{ opacity: 1, y: 0 }}
+                viewport={{ once: true }}
+                transition={{ delay: i * 0.1, duration: 0.6 }}
+                className="snap-start shrink-0 w-[300px] sm:w-[340px]"
+              >
+                <TiltCard className="h-full">
+                  <div
+                    className="group relative cursor-pointer rounded-4xl overflow-hidden glass dark:glass h-full transition-all duration-500 hover:shadow-glow"
+                    onClick={() => handleProductClick(product.id)}
+                    onKeyDown={(event) => {
+                      if (event.key === 'Enter' || event.key === ' ') {
+                        event.preventDefault()
+                        handleProductClick(product.id)
+                      }
+                    }}
+                    role="button"
+                    tabIndex={0}
+                    aria-label={`Open details for ${product.name}`}
+                  >
+                    <div className="relative h-72 overflow-hidden">
+                      <img
+                        src={product.image}
+                        alt={product.name}
+                        className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110"
+                      />
+                      <div className={`pointer-events-none absolute inset-0 bg-gradient-to-t ${productGradients[i % productGradients.length]} opacity-0 group-hover:opacity-100 transition-opacity duration-500`} />
 
-                    {/* Quick actions */}
-                    <div className="absolute top-4 right-4 flex flex-col gap-2 opacity-0 group-hover:opacity-100 transition-opacity duration-300">
-                      <button className="w-9 h-9 rounded-full bg-black/50 backdrop-blur-md flex items-center justify-center hover:bg-primary transition-colors">
-                        <Heart className="w-4 h-4 text-white" />
-                      </button>
-                      <button className="w-9 h-9 rounded-full bg-black/50 backdrop-blur-md flex items-center justify-center hover:bg-primary transition-colors">
-                        <Eye className="w-4 h-4 text-white" />
-                      </button>
-                    </div>
-                  </div>
+                      <div className="absolute top-4 left-4 flex items-center gap-1 px-3 py-1.5 rounded-full bg-black/50 backdrop-blur-md text-white text-xs font-semibold">
+                        <Zap className="w-3 h-3 text-yellow-400" />
+                        {match}% Match
+                      </div>
 
-                  {/* Content */}
-                  <div className="p-5">
-                    <div className="flex items-center justify-between mb-2">
-                      <span className="text-sm font-semibold text-primary">{product.brand}</span>
-                      <div className="flex items-center gap-1">
-                        <Star className="w-4 h-4 text-yellow-400 fill-yellow-400" />
-                        <span className="text-sm font-medium">{product.rating}</span>
-                        <span className="text-xs text-gray-500 dark:text-gray-400">({product.reviews.toLocaleString()})</span>
+                      <div className="absolute top-4 right-4 flex flex-col gap-2 opacity-0 group-hover:opacity-100 transition-opacity duration-300">
+                        <button
+                          type="button"
+                          aria-label={isInWishlist(product.id) ? `Remove ${product.name} from wishlist` : `Save ${product.name} to wishlist`}
+                          className={`w-9 h-9 rounded-full bg-black/50 backdrop-blur-md flex items-center justify-center transition-colors ${
+                            isInWishlist(product.id) ? 'text-primary bg-white/20' : 'hover:bg-primary text-white'
+                          }`}
+                          onClick={(event) => {
+                            event.stopPropagation()
+                            toggleWishlist(product)
+                          }}
+                        >
+                          <Heart className={`w-4 h-4 ${isInWishlist(product.id) ? 'fill-primary text-primary' : 'text-white'}`} />
+                        </button>
+                        <button
+                          type="button"
+                          aria-label={`View ${product.name}`}
+                          className="w-9 h-9 rounded-full bg-black/50 backdrop-blur-md flex items-center justify-center hover:bg-primary transition-colors"
+                          onClick={(event) => {
+                            event.stopPropagation()
+                            handleProductClick(product.id)
+                          }}
+                        >
+                          <Eye className="w-4 h-4 text-white" />
+                        </button>
                       </div>
                     </div>
-                    <h3 className="font-semibold text-lg mb-2 line-clamp-1">{product.name}</h3>
-                    <div className="flex items-center gap-2">
-                      <span className="font-bold text-xl">{product.price}</span>
-                      <span className="text-sm text-gray-500 dark:text-gray-400 line-through">{product.originalPrice}</span>
-                      <span className="text-xs text-green-500 font-semibold">
-                        {Math.round((1 - parseInt(product.price.replace(/[^0-9]/g, '')) / parseInt(product.originalPrice.replace(/[^0-9]/g, ''))) * 100)}% off
-                      </span>
+
+                    <div className="p-5">
+                      <div className="flex items-center justify-between mb-2">
+                        <span className="text-sm font-semibold text-primary">{product.brand}</span>
+                        <div className="flex items-center gap-1">
+                          <Star className="w-4 h-4 text-yellow-400 fill-yellow-400" />
+                          <span className="text-sm font-medium">{product.rating}</span>
+                          <span className="text-xs text-gray-500 dark:text-gray-400">({reviews.toLocaleString()})</span>
+                        </div>
+                      </div>
+                      <h3 className="font-semibold text-lg mb-2 line-clamp-1">{product.name}</h3>
+                      <div className="flex items-center gap-2">
+                        <span className="font-bold text-xl">{product.price}</span>
+                        {displayOriginalPrice ? (
+                          <span className="text-sm text-gray-500 dark:text-gray-400 line-through">{displayOriginalPrice}</span>
+                        ) : null}
+                        {discountPercent > 0 ? (
+                          <span className="text-xs text-green-500 font-semibold">
+                            {discountPercent}% off
+                          </span>
+                        ) : null}
+                      </div>
                     </div>
                   </div>
-                </div>
-              </TiltCard>
-            </motion.div>
-          ))}
+                </TiltCard>
+              </motion.div>
+            )
+          })}
         </div>
       </div>
     </section>

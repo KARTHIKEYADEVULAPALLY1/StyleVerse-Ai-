@@ -4,7 +4,9 @@ const ThemeContext = createContext()
 
 export function ThemeProvider({ children }) {
   const [theme, setTheme] = useState(() => {
-    const saved = localStorage.getItem('styleverse-theme')
+    if (typeof window === 'undefined') return 'dark'
+
+    const saved = window.localStorage.getItem('styleverse-theme')
     return saved || 'dark'
   })
 
@@ -17,7 +19,10 @@ export function ThemeProvider({ children }) {
       root.classList.add('light')
       root.classList.remove('dark')
     }
-    localStorage.setItem('styleverse-theme', theme)
+
+    if (typeof window !== 'undefined') {
+      window.localStorage.setItem('styleverse-theme', theme)
+    }
   }, [theme])
 
   const toggleTheme = () => {

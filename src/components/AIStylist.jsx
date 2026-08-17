@@ -1,48 +1,58 @@
 import { useState } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
-import { Wand2, Sparkles, Shirt, Palette, Calendar, RefreshCw, Check } from 'lucide-react'
+import { Wand2, Sparkles, Shirt, Palette, Calendar, RefreshCw, Check, AlertTriangle } from 'lucide-react'
 import Reveal from './ui/Reveal'
 import MagneticButton from './ui/MagneticButton'
+import { styleProfiles, occasions, colorPalettes } from '../data/fashionData'
+import { recommendOutfit } from '../services/stylistService'
 
-const styleProfiles = [
-  { id: 1, name: 'Streetwear', emoji: '🛹', description: 'Oversized fits, sneakers, bold graphics' },
-  { id: 2, name: 'Minimalist', emoji: '⚪', description: 'Clean lines, neutral tones, timeless pieces' },
-  { id: 3, name: 'Formal', emoji: '💼', description: 'Tailored suits, crisp shirts, professional' },
-  { id: 4, name: 'Bohemian', emoji: '🌿', description: 'Flowy fabrics, earthy tones, layered looks' },
-  { id: 5, name: 'Athleisure', emoji: '🏃', description: 'Sporty comfort, performance fabrics' },
-  { id: 6, name: 'Vintage', emoji: '📼', description: 'Retro pieces, thrifted finds, nostalgia' }
-]
+const budgetOptions = [1000, 2000, 3000, 5000, 8000, 10000]
 
-const occasions = [
-  { id: 1, name: 'Casual Day', emoji: '☀️' },
-  { id: 2, name: 'Office', emoji: '💼' },
-  { id: 3, name: 'Date Night', emoji: '🌙' },
-  { id: 4, name: 'Party', emoji: '🎉' },
-  { id: 5, name: 'Wedding', emoji: '💍' },
-  { id: 6, name: 'Travel', emoji: '✈️' }
-]
-
-const colorPalettes = [
-  { id: 1, name: 'Neutrals', colors: ['#808080', '#A9A9A9', '#D3D3D3', '#696969'] },
-  { id: 2, name: 'Earth Tones', colors: ['#8B7355', '#A0522D', '#6B8E23', '#CD853F'] },
-  { id: 3, name: 'Cool Blues', colors: ['#4682B4', '#5F9EA0', '#6495ED', '#87CEEB'] },
-  { id: 4, name: 'Bold & Bright', colors: ['#FF4500', '#FFD700', '#32CD32', '#FF69B4'] },
-  { id: 5, name: 'Monochrome', colors: ['#000000', '#FFFFFF', '#333333', '#CCCCCC'] }
-]
+const paletteToColor = {
+  Neutrals: 'neutral',
+  'Earth Tones': 'brown',
+  'Cool Blues': 'blue',
+  'Bold & Bright': 'red',
+  Monochrome: 'black',
+}
 
 export default function AIStylist() {
-  const [selectedStyle, setSelectedStyle] = useState(1)
-  const [selectedOccasion, setSelectedOccasion] = useState(1)
-  const [selectedPalette, setSelectedPalette] = useState(1)
+  const [selectedStyle, setSelectedStyle] = useState(2)
+  const [selectedOccasion, setSelectedOccasion] = useState(3)
+  const [selectedPalette, setSelectedPalette] = useState(5)
+  const [selectedBudget, setSelectedBudget] = useState(3000)
   const [generating, setGenerating] = useState(false)
   const [generated, setGenerated] = useState(false)
+  const [recommendations, setRecommendations] = useState([])
+  const [error, setError] = useState(null)
 
-  const handleGenerate = () => {
-    setGenerating(true)
-    setTimeout(() => {
-      setGenerating(false)
+  const handleGenerate = async () => {
+    const styleOption = styleProfiles.find((style) => style.id === selectedStyle)
+    const occasionOption = occasions.find((occasion) => occasion.id === selectedOccasion)
+    const paletteOption = colorPalettes.find((palette) => palette.id === selectedPalette)
+
+    if (!styleOption || !occasionOption || !paletteOption) return
+
+    try {
+      setGenerating(true)
+      setError(null)
+      const response = await recommendOutfit({
+        occasion: occasionOption.name,
+        style: styleOption.name,
+        color: paletteToColor[paletteOption.name] || 'neutral',
+        budget: Number(selectedBudget),
+      })
+
+      const items = Array.isArray(response?.recommendation) ? response.recommendation : []
+      setRecommendations(items)
       setGenerated(true)
-    }, 2000)
+    } catch (err) {
+      setRecommendations([])
+      setError(err.message || 'Unable to generate recommendations.')
+      setGenerated(true)
+    } finally {
+      setGenerating(false)
+    }
   }
 
   return (
@@ -57,15 +67,13 @@ export default function AIStylist() {
             AI <span className="text-shine">Stylist</span>
           </h2>
           <p className="mt-4 text-lg text-gray-600 dark:text-gray-300 font-light tracking-wide">
-            Get personalized outfit recommendations powered by AI
+            Get personalized outfit recommendations powered by real products
           </p>
         </Reveal>
 
         <div className="grid lg:grid-cols-2 gap-8">
-          {/* Left - Preferences */}
           <Reveal direction="right">
             <div className="rounded-4xl glass dark:glass p-8 space-y-8">
-              {/* Style Profile */}
               <div>
                 <h3 className="font-display text-lg font-bold mb-4 flex items-center gap-2">
                   <Shirt className="w-5 h-5 text-primary" />
@@ -90,7 +98,6 @@ export default function AIStylist() {
                 </div>
               </div>
 
-              {/* Occasion */}
               <div>
                 <h3 className="font-display text-lg font-bold mb-4 flex items-center gap-2">
                   <Calendar className="w-5 h-5 text-primary" />
@@ -113,7 +120,6 @@ export default function AIStylist() {
                 </div>
               </div>
 
-              {/* Color Palette */}
               <div>
                 <h3 className="font-display text-lg font-bold mb-4 flex items-center gap-2">
                   <Palette className="w-5 h-5 text-primary" />
@@ -147,7 +153,21 @@ export default function AIStylist() {
                 </div>
               </div>
 
-              {/* Generate Button */}
+              <div>
+                <label className="block text-sm font-medium text-gray-600 dark:text-gray-300 mb-2">Budget</label>
+                <select
+                  value={selectedBudget}
+                  onChange={(event) => setSelectedBudget(Number(event.target.value))}
+                  className="w-full rounded-2xl glass dark:glass px-3 py-2.5 text-sm outline-none border border-white/10 bg-transparent"
+                >
+                  {budgetOptions.map((option) => (
+                    <option key={option} value={option} className="bg-[#0A0A0F] text-white">
+                      Under ₹{option.toLocaleString('en-IN')}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
               <MagneticButton
                 onClick={handleGenerate}
                 className="w-full px-6 py-4 rounded-2xl btn-fashion text-white font-semibold shadow-glow"
@@ -167,7 +187,6 @@ export default function AIStylist() {
             </div>
           </Reveal>
 
-          {/* Right - Results */}
           <Reveal direction="left" delay={0.2}>
             <div className="rounded-4xl glass dark:glass p-8 h-full">
               <AnimatePresence mode="wait">
@@ -188,7 +207,7 @@ export default function AIStylist() {
                     </motion.div>
                     <h3 className="font-display text-2xl font-bold mb-2">Your AI Stylist Awaits</h3>
                     <p className="text-gray-600 dark:text-gray-300 max-w-sm">
-                      Select your preferences and let our AI create the perfect outfit for you
+                      Select your preferences and let our product-driven stylist create the perfect outfit for you.
                     </p>
                   </motion.div>
                 ) : (
@@ -207,42 +226,42 @@ export default function AIStylist() {
                       </span>
                     </div>
 
-                    {/* Outfit Preview */}
-                    <div className="grid grid-cols-3 gap-4">
-                      {[
-                        { type: 'Top', emoji: '👕', name: 'Oversized Tee' },
-                        { type: 'Bottom', emoji: '👖', name: 'Cargo Pants' },
-                        { type: 'Shoes', emoji: '👟', name: 'Chunky Sneakers' }
-                      ].map((item, i) => (
-                        <motion.div
-                          key={item.type}
-                          initial={{ opacity: 0, y: 20 }}
-                          animate={{ opacity: 1, y: 0 }}
-                          transition={{ delay: i * 0.2 }}
-                          className="rounded-2xl glass dark:glass p-4 text-center"
-                        >
-                          <div className="text-4xl mb-2">{item.emoji}</div>
-                          <div className="text-xs text-gray-500 dark:text-gray-400">{item.type}</div>
-                          <div className="font-semibold text-sm mt-1">{item.name}</div>
-                        </motion.div>
-                      ))}
-                    </div>
-
-                    {/* AI Tips */}
-                    <div className="rounded-2xl bg-gradient-to-br from-primary/10 to-secondary/10 p-4">
-                      <h4 className="font-semibold text-sm mb-2 flex items-center gap-2">
-                        <Sparkles className="w-4 h-4 text-primary" />
-                        AI Styling Tips
-                      </h4>
-                      <ul className="space-y-2 text-sm text-gray-600 dark:text-gray-300">
-                        <li>• Pair with white sneakers for a clean finish</li>
-                        <li>• Add a crossbody bag for functionality</li>
-                        <li>• Layer with a denim jacket for cooler evenings</li>
-                      </ul>
-                    </div>
+                    {error ? (
+                      <div className="rounded-2xl border border-red-500/30 bg-red-500/10 p-4 text-red-200">
+                        <div className="flex items-center gap-2 mb-2">
+                          <AlertTriangle className="w-4 h-4" />
+                          <span className="font-semibold">Unable to generate</span>
+                        </div>
+                        <p className="text-sm">{error}</p>
+                      </div>
+                    ) : !recommendations.length ? (
+                      <div className="rounded-2xl glass dark:glass p-6 text-center">
+                        <p className="text-gray-600 dark:text-gray-300">No outfit recommendations found for this combination.</p>
+                      </div>
+                    ) : (
+                      <div className="grid gap-4">
+                        {recommendations.map((product) => (
+                          <div key={product.id} className="rounded-2xl glass dark:glass overflow-hidden">
+                            <img src={product.image} alt={product.name} className="w-full h-40 object-cover" />
+                            <div className="p-4">
+                              <div className="text-[10px] uppercase tracking-[0.2em] text-primary mb-2">{product.category}</div>
+                              <h4 className="font-semibold text-base text-white">{product.name}</h4>
+                              <div className="mt-3 flex items-center justify-between">
+                                <span className="text-sm text-gray-500 dark:text-gray-400">{product.brand}</span>
+                                <span className="text-lg font-bold text-white">{product.price}</span>
+                              </div>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    )}
 
                     <MagneticButton
-                      onClick={() => setGenerated(false)}
+                      onClick={() => {
+                        setGenerated(false)
+                        setError(null)
+                        setRecommendations([])
+                      }}
                       className="w-full px-6 py-3 rounded-2xl glass dark:glass font-semibold"
                     >
                       Regenerate

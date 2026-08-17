@@ -1,8 +1,18 @@
-import { useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
-import { Upload, RotateCw, ZoomIn, Shirt, RefreshCw, Check } from 'lucide-react'
+import {
+  Upload,
+  RotateCw,
+  ZoomIn,
+  Shirt,
+  Check,
+  Loader2,
+  AlertTriangle,
+  RefreshCw,
+} from 'lucide-react'
 import Reveal from './ui/Reveal'
 import MagneticButton from './ui/MagneticButton'
+import { uploadTryOnImage, validateTryOnFile } from '../services/tryOnService'
 
 const fitMetrics = [
   { label: 'Shoulder Fit', value: 92, color: '#FF2E88' },
@@ -21,14 +31,70 @@ const clothingOptions = [
 ]
 
 export default function VirtualTryOn() {
-  const [uploaded, setUploaded] = useState(false)
+  const fileInputRef = useRef(null)
+  const [selectedFile, setSelectedFile] = useState(null)
+  const [previewUrl, setPreviewUrl] = useState('')
+  const [uploadResult, setUploadResult] = useState(null)
+  const [uploadProgress, setUploadProgress] = useState(0)
+  const [uploadState, setUploadState] = useState('idle')
+  const [error, setError] = useState(null)
   const [dragging, setDragging] = useState(false)
   const [selectedClothing, setSelectedClothing] = useState(1)
   const [rotating, setRotating] = useState(false)
   const [zoomed, setZoomed] = useState(false)
 
-  const handleDragOver = (e) => {
-    e.preventDefault()
+  useEffect(() => {
+    return () => {
+      if (previewUrl) {
+        URL.revokeObjectURL(previewUrl)
+      }
+    }
+  }, [previewUrl])
+
+  const resetUpload = () => {
+    if (previewUrl) {
+      URL.revokeObjectURL(previewUrl)
+    }
+    setSelectedFile(null)
+    setPreviewUrl('')
+    setUploadResult(null)
+    setUploadProgress(0)
+    setUploadState('idle')
+    setError(null)
+    if (fileInputRef.current) {
+      fileInputRef.current.value = ''
+    }
+  }
+
+  const handleFileSelection = (file) => {
+    const validationError = validateTryOnFile(file)
+    if (validationError) {
+      setError(validationError)
+      setUploadState('error')
+      return
+    }
+
+    if (previewUrl) {
+      URL.revokeObjectURL(previewUrl)
+    }
+
+    setSelectedFile(file)
+    setPreviewUrl(URL.createObjectURL(file))
+    setUploadResult(null)
+    setUploadProgress(0)
+    setUploadState('preview')
+    setError(null)
+  }
+
+  const handleInputChange = (event) => {
+    const file = event.target.files?.[0]
+    if (file) {
+      handleFileSelection(file)
+    }
+  }
+
+  const handleDragOver = (event) => {
+    event.preventDefault()
     setDragging(true)
   }
 
@@ -36,11 +102,42 @@ export default function VirtualTryOn() {
     setDragging(false)
   }
 
-  const handleDrop = (e) => {
-    e.preventDefault()
+  const handleDrop = (event) => {
+    event.preventDefault()
     setDragging(false)
-    setUploaded(true)
+    const file = event.dataTransfer.files?.[0]
+    if (file) {
+      handleFileSelection(file)
+    }
   }
+
+  const handleUpload = async () => {
+    if (!selectedFile) return
+
+    try {
+      setUploadState('uploading')
+      setError(null)
+      setUploadProgress(0)
+
+      const result = await uploadTryOnImage(selectedFile, {
+        onProgress: setUploadProgress,
+      })
+
+      setUploadResult(result)
+      setUploadState('success')
+    } catch (err) {
+      setError(err.message || 'Unable to upload image.')
+      setUploadState('error')
+    }
+  }
+
+  const openFilePicker = () => {
+    fileInputRef.current?.click()
+  }
+
+  const isUploading = uploadState === 'uploading'
+  const showPreview = ['preview', 'uploading', 'error'].includes(uploadState) && previewUrl
+  const showSuccess = uploadState === 'success'
 
   return (
     <section id="try-on" className="relative py-24 overflow-hidden">
@@ -59,7 +156,6 @@ export default function VirtualTryOn() {
         </Reveal>
 
         <div className="grid lg:grid-cols-2 gap-8">
-          {/* Left - Upload */}
           <Reveal direction="right">
             <div
               onDragOver={handleDragOver}
@@ -69,14 +165,22 @@ export default function VirtualTryOn() {
                 dragging ? 'border-2 border-primary scale-[1.02]' : ''
               }`}
             >
+              <input
+                ref={fileInputRef}
+                type="file"
+                accept="image/jpeg,image/png,.jpg,.jpeg,.png"
+                className="hidden"
+                onChange={handleInputChange}
+              />
+
               <AnimatePresence mode="wait">
-                {!uploaded ? (
+                {!showPreview && !showSuccess && uploadState !== 'error' && (
                   <motion.div
                     key="upload"
                     initial={{ opacity: 0 }}
                     animate={{ opacity: 1 }}
                     exit={{ opacity: 0 }}
-                    className="text-center"
+                    className="text-center w-full"
                   >
                     <motion.div
                       animate={{ y: [0, -10, 0] }}
@@ -87,16 +191,107 @@ export default function VirtualTryOn() {
                     </motion.div>
                     <h3 className="font-display text-2xl font-normal mb-2">Upload Your Photo</h3>
                     <p className="text-gray-600 dark:text-gray-300 mb-6 font-light tracking-wide">
-                      Drag & drop or click to upload
+                      Drag & drop or click to upload a JPG or PNG (max 5 MB)
                     </p>
                     <MagneticButton
-                      onClick={() => setUploaded(true)}
+                      onClick={openFilePicker}
                       className="px-6 py-3 rounded-2xl btn-fashion text-white font-semibold shadow-glow"
                     >
                       Choose Photo
                     </MagneticButton>
                   </motion.div>
-                ) : (
+                )}
+
+                {showPreview && !showSuccess && (
+                  <motion.div
+                    key="preview"
+                    initial={{ opacity: 0, scale: 0.96 }}
+                    animate={{ opacity: 1, scale: 1 }}
+                    exit={{ opacity: 0, scale: 0.96 }}
+                    className="w-full"
+                  >
+                    <div className="relative rounded-3xl overflow-hidden aspect-[3/4] bg-gradient-to-br from-primary/10 to-secondary/10 mb-6">
+                      <img
+                        src={previewUrl}
+                        alt="Selected try-on preview"
+                        className="absolute inset-0 w-full h-full object-cover"
+                      />
+                      {isUploading && (
+                        <div className="absolute inset-0 bg-black/50 backdrop-blur-sm flex flex-col items-center justify-center text-white">
+                          <Loader2 className="w-10 h-10 animate-spin mb-4" />
+                          <p className="font-semibold">Uploading photo…</p>
+                          <p className="text-sm text-white/80 mt-1">{uploadProgress}%</p>
+                          <div className="w-48 h-2 rounded-full bg-white/20 overflow-hidden mt-4">
+                            <div
+                              className="h-full rounded-full bg-gradient-to-r from-primary to-secondary transition-all duration-300"
+                              style={{ width: `${uploadProgress}%` }}
+                            />
+                          </div>
+                        </div>
+                      )}
+                    </div>
+
+                    {uploadState === 'error' && error && (
+                      <div className="mb-4 rounded-2xl border border-red-500/30 bg-red-500/10 px-4 py-3 text-left">
+                        <div className="flex items-start gap-3">
+                          <AlertTriangle className="w-5 h-5 text-red-500 shrink-0 mt-0.5" />
+                          <p className="text-sm text-red-200">{error}</p>
+                        </div>
+                      </div>
+                    )}
+
+                    <div className="flex flex-col sm:flex-row gap-3">
+                      <MagneticButton
+                        onClick={handleUpload}
+                        disabled={isUploading}
+                        className="flex-1 px-6 py-3 rounded-2xl btn-fashion text-white font-semibold shadow-glow disabled:opacity-60 disabled:cursor-not-allowed"
+                      >
+                        {isUploading ? (
+                          <>
+                            <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                            Uploading…
+                          </>
+                        ) : (
+                          <>
+                            <Upload className="w-4 h-4 mr-2" />
+                            Upload Photo
+                          </>
+                        )}
+                      </MagneticButton>
+                      <MagneticButton
+                        onClick={resetUpload}
+                        disabled={isUploading}
+                        className="flex-1 px-6 py-3 rounded-2xl glass dark:glass font-semibold disabled:opacity-60 disabled:cursor-not-allowed"
+                      >
+                        Choose Different Photo
+                      </MagneticButton>
+                    </div>
+                  </motion.div>
+                )}
+
+                {uploadState === 'error' && !showPreview && (
+                  <motion.div
+                    key="error"
+                    initial={{ opacity: 0, scale: 0.96 }}
+                    animate={{ opacity: 1, scale: 1 }}
+                    exit={{ opacity: 0, scale: 0.96 }}
+                    className="w-full text-center"
+                  >
+                    <div className="w-20 h-20 rounded-3xl bg-gradient-to-br from-red-500/20 to-orange-500/20 flex items-center justify-center mx-auto mb-6">
+                      <AlertTriangle className="w-8 h-8 text-red-500" />
+                    </div>
+                    <h3 className="font-display text-2xl font-normal mb-2">Upload Failed</h3>
+                    <p className="text-gray-600 dark:text-gray-300 mb-6">{error}</p>
+                    <MagneticButton
+                      onClick={resetUpload}
+                      className="px-6 py-3 rounded-2xl btn-fashion text-white font-semibold shadow-glow"
+                    >
+                      Try Again
+                    </MagneticButton>
+                  </motion.div>
+                )}
+
+                {showSuccess && (
                   <motion.div
                     key="uploaded"
                     initial={{ opacity: 0, scale: 0.8 }}
@@ -104,20 +299,30 @@ export default function VirtualTryOn() {
                     className="w-full"
                   >
                     <div className="relative rounded-3xl overflow-hidden aspect-[3/4] bg-gradient-to-br from-primary/10 to-secondary/10 mb-6">
-                      <div className="absolute inset-0 flex items-center justify-center">
-                        <div className="text-center">
+                      {previewUrl ? (
+                        <img
+                          src={previewUrl}
+                          alt="Uploaded try-on photo"
+                          className="absolute inset-0 w-full h-full object-cover"
+                        />
+                      ) : null}
+                      <div className="absolute inset-0 bg-black/35 flex items-center justify-center">
+                        <div className="text-center text-white">
                           <div className="w-16 h-16 rounded-full btn-fashion mx-auto mb-4 flex items-center justify-center shadow-glow">
                             <Check className="w-8 h-8 text-white" />
                           </div>
                           <p className="font-semibold">Photo Uploaded!</p>
-                          <p className="text-sm text-gray-500 dark:text-gray-400">AI is analyzing your body type...</p>
+                          <p className="text-sm text-white/80 mt-1">
+                            Upload ID: {uploadResult?.upload_id?.slice(0, 8)}…
+                          </p>
                         </div>
                       </div>
                     </div>
                     <MagneticButton
-                      onClick={() => setUploaded(false)}
+                      onClick={resetUpload}
                       className="w-full px-6 py-3 rounded-2xl glass dark:glass font-semibold"
                     >
+                      <RefreshCw className="w-4 h-4 mr-2 inline-block" />
                       Upload Different Photo
                     </MagneticButton>
                   </motion.div>
@@ -126,10 +331,8 @@ export default function VirtualTryOn() {
             </div>
           </Reveal>
 
-          {/* Right - Avatar Viewer */}
           <Reveal direction="left" delay={0.2}>
             <div className="rounded-4xl glass dark:glass p-6 h-full">
-              {/* Controls */}
               <div className="flex items-center justify-between mb-4">
                 <h3 className="font-display text-xl font-normal">Interactive Avatar</h3>
                 <div className="flex gap-2">
@@ -152,7 +355,6 @@ export default function VirtualTryOn() {
                 </div>
               </div>
 
-              {/* Avatar */}
               <div className="relative rounded-3xl overflow-hidden aspect-[3/4] bg-gradient-to-br from-primary/10 via-transparent to-secondary/10 mb-6">
                 <motion.div
                   animate={{
@@ -166,7 +368,6 @@ export default function VirtualTryOn() {
                   className="absolute inset-0 flex items-center justify-center"
                   style={{ transformStyle: 'preserve-3d' }}
                 >
-                  {/* Simple avatar silhouette */}
                   <div className="relative">
                     <div className="w-24 h-24 rounded-full bg-gradient-to-br from-primary/30 to-secondary/30 mx-auto mb-2" />
                     <div className="w-40 h-56 rounded-t-[100px] rounded-b-3xl bg-gradient-to-br from-primary/20 to-secondary/20 mx-auto relative overflow-hidden">
@@ -190,7 +391,6 @@ export default function VirtualTryOn() {
                 </motion.div>
               </div>
 
-              {/* Clothing options */}
               <div className="flex gap-2 flex-wrap">
                 {clothingOptions.map((item) => (
                   <button
@@ -213,11 +413,9 @@ export default function VirtualTryOn() {
           </Reveal>
         </div>
 
-        {/* Fit Analysis */}
         <Reveal className="mt-16">
           <div className="rounded-4xl glass dark:glass p-8">
             <div className="grid lg:grid-cols-2 gap-8 items-center">
-              {/* Score */}
               <div className="text-center">
                 <div className="relative w-48 h-48 mx-auto">
                   <svg className="w-full h-full -rotate-90" viewBox="0 0 200 200">
@@ -267,7 +465,6 @@ export default function VirtualTryOn() {
                 </div>
               </div>
 
-              {/* Metrics */}
               <div className="space-y-4">
                 {fitMetrics.map((metric, i) => (
                   <div key={metric.label}>

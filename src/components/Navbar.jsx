@@ -1,23 +1,19 @@
 import { useState, useEffect } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
-import { Sun, Moon, Menu, X, Search, User, Heart } from 'lucide-react'
+import { Sun, Moon, Menu, X, Search, User, Heart, ShoppingCart, LogOut } from 'lucide-react'
+import { useNavigate } from 'react-router-dom'
 import { useTheme } from '../context/ThemeContext'
+import { useCart } from '../context/CartContext'
+import { useAuth } from '../context/AuthContext'
+import { navItems } from '../data/fashionData'
 import MagneticButton from './ui/MagneticButton'
 import FashionLogo from './ui/FashionLogo'
 
-const navItems = [
-  { label: 'Home', href: '#home' },
-  { label: 'Explore', href: '#explore' },
-  { label: 'AI Search', href: '#ai-search' },
-  { label: 'Virtual Try-On', href: '#try-on' },
-  { label: 'AI Stylist', href: '#stylist' },
-  { label: 'Wishlist', href: '#wishlist' },
-  { label: 'About', href: '#about' },
-  { label: 'Profile', href: '#profile' }
-]
-
 export default function Navbar() {
+  const navigate = useNavigate()
   const { theme, toggleTheme } = useTheme()
+  const { totalItems } = useCart()
+  const { user, isAuthenticated, logout } = useAuth()
   const [scrolled, setScrolled] = useState(false)
   const [mobileOpen, setMobileOpen] = useState(false)
 
@@ -99,18 +95,35 @@ export default function Navbar() {
                 <Search className="w-5 h-5" />
               </MagneticButton>
 
-              {/* Wishlist Icon */}
-              <MagneticButton className="hidden sm:flex w-10 h-10 rounded-full glass dark:glass items-center justify-center relative">
-                <Heart className="w-5 h-5" />
-                <span className="absolute -top-1 -right-1 w-4 h-4 rounded-full btn-fashion text-white text-[10px] flex items-center justify-center font-bold">
-                  3
-                </span>
+              {/* Cart Icon */}
+              <MagneticButton
+                onClick={() => document.getElementById('cart')?.scrollIntoView({ behavior: 'smooth' })}
+                className="hidden sm:flex w-10 h-10 rounded-full glass dark:glass items-center justify-center relative"
+              >
+                <ShoppingCart className="w-5 h-5" />
+                {totalItems > 0 && (
+                  <span className="absolute -top-1 -right-1 w-4 h-4 rounded-full btn-fashion text-white text-[10px] flex items-center justify-center font-bold">
+                    {totalItems > 9 ? '9+' : totalItems}
+                  </span>
+                )}
               </MagneticButton>
 
-              {/* Profile */}
-              <MagneticButton className="hidden sm:flex w-10 h-10 rounded-full glass dark:glass items-center justify-center">
-                <User className="w-5 h-5" />
-              </MagneticButton>
+              {/* Profile / Login */}
+              {isAuthenticated ? (
+                <div className="hidden sm:flex items-center gap-2 rounded-full glass dark:glass px-3 py-2">
+                  <span className="text-xs font-medium text-gray-700 dark:text-gray-200">Hi, {user?.name || 'User'}</span>
+                  <MagneticButton onClick={logout} className="w-8 h-8 rounded-full bg-white/5 flex items-center justify-center">
+                    <LogOut className="w-4 h-4" />
+                  </MagneticButton>
+                </div>
+              ) : (
+                <MagneticButton
+                  onClick={() => navigate('/login')}
+                  className="hidden sm:flex w-10 h-10 rounded-full glass dark:glass items-center justify-center"
+                >
+                  <User className="w-5 h-5" />
+                </MagneticButton>
+              )}
 
               {/* Mobile Menu Button */}
               <button

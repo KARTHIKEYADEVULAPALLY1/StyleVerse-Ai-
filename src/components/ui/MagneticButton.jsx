@@ -1,7 +1,7 @@
 import { useRef } from 'react'
 import { motion } from 'framer-motion'
 
-export default function MagneticButton({ children, className = '', onClick, strength = 0.3 }) {
+export default function MagneticButton({ children, className = '', onClick, strength = 0.3, type = 'button', disabled = false }) {
   const ref = useRef(null)
 
   const handleMouseMove = (e) => {
@@ -22,12 +22,14 @@ export default function MagneticButton({ children, className = '', onClick, stre
   return (
     <motion.button
       ref={ref}
-      onMouseMove={handleMouseMove}
-      onMouseLeave={handleMouseLeave}
-      onClick={onClick}
-      whileTap={{ scale: 0.95 }}
+      type={type}
+      disabled={disabled}
+      onMouseMove={disabled ? undefined : handleMouseMove}
+      onMouseLeave={disabled ? undefined : handleMouseLeave}
+      onClick={disabled ? undefined : onClick}
+      whileTap={disabled ? undefined : { scale: 0.95 }}
       transition={{ type: 'spring', stiffness: 300, damping: 20 }}
-      className={`relative inline-flex items-center justify-center transition-transform duration-300 ease-out ${className}`}
+      className={`relative inline-flex items-center justify-center transition-transform duration-300 ease-out ${disabled ? 'cursor-not-allowed opacity-70' : ''} ${className}`}
     >
       {children}
     </motion.button>

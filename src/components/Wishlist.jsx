@@ -1,49 +1,37 @@
-import { useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { Heart, Trash2, ShoppingBag, Share2, Bell, Star } from 'lucide-react'
 import Reveal from './ui/Reveal'
 import TiltCard from './ui/TiltCard'
 import MagneticButton from './ui/MagneticButton'
-
-const initialWishlist = [
-  {
-    id: 1,
-    name: 'Oversized Graphic Hoodie',
-    brand: 'H&M',
-    price: '₹1,299',
-    originalPrice: '₹2,499',
-    image: 'https://images.unsplash.com/photo-1556821840-3a63f95609a7?w=400&q=80',
-    inStock: true,
-    priceDrop: true
-  },
-  {
-    id: 2,
-    name: 'Classic White Sneakers',
-    brand: 'Nike',
-    price: '₹4,999',
-    originalPrice: '₹6,999',
-    image: 'https://images.unsplash.com/photo-1542291026-7eec264c27ff?w=400&q=80',
-    inStock: true,
-    priceDrop: false
-  },
-  {
-    id: 3,
-    name: 'Minimalist Watch',
-    brand: 'Daniel Wellington',
-    price: '₹8,999',
-    originalPrice: '₹12,999',
-    image: 'https://images.unsplash.com/photo-1524592094714-0f0654e20314?w=400&q=80',
-    inStock: false,
-    priceDrop: true
-  }
-]
+import { useWishlist } from '../context/WishlistContext'
 
 export default function Wishlist() {
-  const [wishlist, setWishlist] = useState(initialWishlist)
+  const { wishlistProducts, removeFromWishlist } = useWishlist()
   const [notifyEnabled, setNotifyEnabled] = useState({})
 
+  const wishlist = useMemo(
+    () =>
+      wishlistProducts.map((product, index) => ({
+        ...product,
+        inStock: product.id !== 4,
+        priceDrop: index === 0 || product.id === 4
+      })),
+    [wishlistProducts]
+  )
+
+  useEffect(() => {
+    setNotifyEnabled((prev) => {
+      const next = {}
+      wishlist.forEach((item) => {
+        next[item.id] = Boolean(prev[item.id])
+      })
+      return next
+    })
+  }, [wishlist])
+
   const removeItem = (id) => {
-    setWishlist(wishlist.filter(item => item.id !== id))
+    removeFromWishlist(id)
   }
 
   const toggleNotify = (id) => {
