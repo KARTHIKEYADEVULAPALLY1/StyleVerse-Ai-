@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { ArrowLeft, LockKeyhole, Mail, Sparkles, User, Loader2 } from 'lucide-react'
-import { useNavigate } from 'react-router-dom'
+import { useLocation, useNavigate } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext'
 import { loginUser, signupUser } from '../services/authService'
 import Reveal from './ui/Reveal'
@@ -8,7 +8,10 @@ import MagneticButton from './ui/MagneticButton'
 
 export default function LoginPage({ initialMode = 'login' }) {
   const navigate = useNavigate()
+  const location = useLocation()
   const { loginSuccess, signup, isAuthenticated } = useAuth()
+  // Preserve the page the user was viewing when they were redirected to login.
+  const redirectTo = location.state?.from || '/'
   const [mode, setMode] = useState(initialMode) // 'login' | 'signup'
   const [form, setForm] = useState({ name: '', email: '', password: '' })
   const [error, setError] = useState('')
@@ -48,7 +51,7 @@ export default function LoginPage({ initialMode = 'login' }) {
         setSuccess('Logged in successfully! Redirecting...')
         loginSuccess(access_token, userData)
         setTimeout(() => {
-          navigate('/')
+          navigate(redirectTo)
         }, 800)
       } catch (err) {
         setError(err.message || 'Login failed. Please try again.')
@@ -77,7 +80,7 @@ export default function LoginPage({ initialMode = 'login' }) {
       setSuccess('Account created successfully! Redirecting...')
       signup(access_token, userData)
       setTimeout(() => {
-        navigate('/')
+        navigate(redirectTo)
       }, 800)
     } catch (err) {
       setError(err.message || 'Signup failed. Please try again.')
