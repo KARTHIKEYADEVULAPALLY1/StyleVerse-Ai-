@@ -1,9 +1,10 @@
 import { useEffect, useState } from 'react'
 import { motion } from 'framer-motion'
-import { ArrowLeft, ShoppingCart, Heart, Star, Tag, Truck, Loader2, AlertTriangle } from 'lucide-react'
-import { useNavigate, useParams } from 'react-router-dom'
+import { ArrowLeft, ShoppingCart, Heart, Star, Tag, Truck, Loader2, AlertTriangle, LogIn } from 'lucide-react'
+import { useLocation, useNavigate, useParams } from 'react-router-dom'
 import { parsePrice } from '../data/products'
 import { fetchProductById } from '../services/productService'
+import { useAuth } from '../context/AuthContext'
 import { useWishlist } from '../context/WishlistContext'
 import { useCart } from '../context/CartContext'
 import Reveal from './ui/Reveal'
@@ -12,13 +13,16 @@ import PriceComparison from './PriceComparison'
 
 export default function ProductDetails() {
   const { id } = useParams()
+  const location = useLocation()
   const navigate = useNavigate()
+  const { isAuthenticated } = useAuth()
   const { isInWishlist, toggleWishlist } = useWishlist()
   const { addToCart } = useCart()
   const [product, setProduct] = useState(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
   const [selectedSize, setSelectedSize] = useState('')
+  const [authAction, setAuthAction] = useState(null) // 'wishlist' | 'cart' | null
 
   useEffect(() => {
     let cancelled = false
@@ -52,7 +56,35 @@ export default function ProductDetails() {
     }
   }, [product])
 
+  // Once the user logs in, clear any pending auth prompt.
+  useEffect(() => {
+    if (isAuthenticated) {
+      setAuthAction(null)
+    }
+  }, [isAuthenticated])
+
   const isSaved = product ? isInWishlist(product.id) : false
+
+  const handleWishlistClick = () => {
+    if (!isAuthenticated) {
+      setAuthAction('wishlist')
+      return
+    }
+    toggleWishlist(product)
+  }
+
+  const handleCartClick = () => {
+    if (!isAuthenticated) {
+      setAuthAction('cart')
+      return
+    }
+    addToCart(product, selectedSize, 1)
+  }
+
+  const handleLoginRedirect = () => {
+    // Preserve the current product page so the user can return after logging in.
+    navigate('/login', { state: { from: location.pathname } })
+  }
 
   if (loading) {
     return (
@@ -207,14 +239,14 @@ export default function ProductDetails() {
 
               <div className="mt-8 flex flex-col sm:flex-row gap-3">
                 <MagneticButton
-                  onClick={() => addToCart(product, selectedSize, 1)}
+                  onClick={handleCartClick}
                   className="flex-1 px-6 py-3 rounded-2xl btn-fashion text-white font-semibold shadow-glow"
                 >
                   <ShoppingCart className="w-4 h-4 mr-2" />
                   Add to Cart
                 </MagneticButton>
                 <MagneticButton
-                  onClick={() => toggleWishlist(product)}
+                  onClick={handleWishlistClick}
                   className={`flex-1 px-6 py-3 rounded-2xl font-semibold border transition-colors ${
                     isSaved
                       ? 'bg-primary text-white border-primary'
@@ -225,6 +257,30 @@ export default function ProductDetails() {
                   {isSaved ? 'Saved to Wishlist' : 'Add to Wishlist'}
                 </MagneticButton>
               </div>
+
+              {authAction && !isAuthenticated && (
+                <motion.div
+                  initial={{ opacity: 0, y: 10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  className="mt-4 rounded-2xl border border-primary/30 bg-primary/10 px-4 py-3 flex items-center justify-between gap-3"
+                >
+                  <div className="flex items-start gap-3">
+                    <AlertTriangle className="w-5 h-5 text-primary shrink-0 mt-0.5" />
+                    <p className="text-sm text-gray-700 dark:text-gray-200">
+                      {authAction === 'wishlist'
+                        ? 'Please log in to save products to your wishlist.'
+                        : 'Please log in to add products to your cart.'}
+                    </p>
+                  </div>
+                  <MagneticButton
+                    onClick={handleLoginRedirect}
+                    className="shrink-0 px-4 py-2 rounded-xl btn-fashion text-white text-sm font-semibold shadow-glow"
+                  >
+                    <LogIn className="w-4 h-4 mr-1.5" />
+                    Go to Login
+                  </MagneticButton>
+                </motion.div>
+              )}
             </div>
           </Reveal>
         </div>

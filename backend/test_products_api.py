@@ -40,8 +40,16 @@ def test_get_all_products():
         assert res.status == 200
         products = json.loads(res.read().decode('utf-8'))
         assert isinstance(products, list)
-        assert len(products) == 6, f'Expected 6 products, got {len(products)}'
-        print(f'  -> Returned {len(products)} products:')
+        # Expect a non-empty catalog (database may grow over time)
+        assert len(products) > 0, 'Product catalog should not be empty'
+
+        # Verify all originally seeded products are present in the response.
+        seeded_product_ids = {1, 2, 3, 4, 5, 6, 7, 8, 9, 10}
+        returned_ids = {p['id'] for p in products}
+        missing = sorted(seeded_product_ids - returned_ids)
+        assert not missing, f'Missing seeded products: {missing}'
+
+        print(f'  -> Returned {len(products)} products (expected seed IDs {sorted(seeded_product_ids)} present):')
         for p in products:
             print(f"     [{p['id']}] {p['brand']} {p['name']} | Category: {p['category']} | Price: {p['price']} | Rating: {p['rating']}")
         return products
