@@ -1,14 +1,20 @@
 from __future__ import annotations
 
-from fastapi import APIRouter, Depends, File, UploadFile
+import re
+from pathlib import Path
+
+from fastapi import APIRouter, Depends, File, HTTPException, UploadFile, status
+from fastapi.responses import FileResponse
 from sqlalchemy.orm import Session
 
 from app.database import get_db
 from app.schemas.try_on import TryOnProcessRequest, TryOnProcessResponse, TryOnUploadResponse
 from app.services.try_on_service import save_try_on_upload
-from app.services.virtual_try_on_service import virtual_try_on_service
+from app.services.virtual_try_on_service import RESULTS_DIR, virtual_try_on_service
 
 router = APIRouter(prefix='/api/try-on', tags=['try-on'])
+
+RESULT_FILENAME_PATTERN = re.compile(r'^[a-f0-9]{32}\.jpg$')
 
 
 @router.post('/upload', response_model=TryOnUploadResponse, summary='Upload a try-on photo')
@@ -35,4 +41,30 @@ async def process_try_on(
         status=result.status,
         message=result.message,
         product_id=result.product_id,
+        result_image=result.result_image,
     )
+
+
+@router.get('/results/{filename}', summary='Retrieve a generated try-on result image')
+async def get_try_on_result(filename: str) -> FileResponse:
+    """Serve a generated try-on result image securely by filename."""
+    if not RESULT_FILENAME_PATTERN.fullmatch(filename):
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail='Invalid result image filename.',
+        )
+
+    result_path = (RESULTS_DIR / filename).resolve()
+    if result_path.parent != RESULTS_DIR.resolve():
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail='Invalid result image path.',
+        )
+
+    if not result_path.is_file():
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail='Generated try-on result not found.',
+        )
+
+    return FileResponse(result_path, media_type='image/jpeg')

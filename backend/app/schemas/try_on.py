@@ -18,3 +18,4 @@ class TryOnProcessResponse(BaseModel):
     status: str
     message: str
     product_id: int
+    result_image: str | None = None

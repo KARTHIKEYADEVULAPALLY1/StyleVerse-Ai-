@@ -1,18 +1,19 @@
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import {
   Upload,
-  RotateCw,
-  ZoomIn,
   Shirt,
   Check,
   Loader2,
   AlertTriangle,
   RefreshCw,
+  ImageIcon,
+  Sparkles,
 } from 'lucide-react'
 import Reveal from './ui/Reveal'
 import MagneticButton from './ui/MagneticButton'
-import { uploadTryOnImage, validateTryOnFile } from '../services/tryOnService'
+import { uploadTryOnImage, processTryOn, validateTryOnFile } from '../services/tryOnService'
+import { fetchProducts } from '../services/productService'
 
 const fitMetrics = [
   { label: 'Shoulder Fit', value: 92, color: '#FF2E88' },
@@ -21,13 +22,6 @@ const fitMetrics = [
   { label: 'Comfort', value: 90, color: '#8B5CF6' },
   { label: 'Trend Score', value: 96, color: '#FF2E88' },
   { label: 'Color Match', value: 93, color: '#8B5CF6' }
-]
-
-const clothingOptions = [
-  { id: 1, name: 'Oversized Hoodie', color: '#FF2E88' },
-  { id: 2, name: 'Denim Jacket', color: '#8B5CF6' },
-  { id: 3, name: 'White Tee', color: '#FFFFFF' },
-  { id: 4, name: 'Black Blazer', color: '#333333' }
 ]
 
 export default function VirtualTryOn() {
@@ -39,9 +33,40 @@ export default function VirtualTryOn() {
   const [uploadState, setUploadState] = useState('idle')
   const [error, setError] = useState(null)
   const [dragging, setDragging] = useState(false)
-  const [selectedClothing, setSelectedClothing] = useState(1)
-  const [rotating, setRotating] = useState(false)
-  const [zoomed, setZoomed] = useState(false)
+  const [selectedProductId, setSelectedProductId] = useState(1)
+  const [products, setProducts] = useState([])
+  const [productsLoading, setProductsLoading] = useState(true)
+  const [productsError, setProductsError] = useState(null)
+  const [generatedImageUrl, setGeneratedImageUrl] = useState('')
+
+  useEffect(() => {
+    let cancelled = false
+
+    async function loadProducts() {
+      try {
+        setProductsLoading(true)
+        setProductsError(null)
+        const data = await fetchProducts()
+        if (!cancelled) {
+          setProducts(Array.isArray(data) ? data : [])
+        }
+      } catch (err) {
+        if (!cancelled) {
+          setProducts([])
+          setProductsError(err.message || 'Failed to load products.')
+        }
+      } finally {
+        if (!cancelled) {
+          setProductsLoading(false)
+        }
+      }
+    }
+
+    loadProducts()
+    return () => {
+      cancelled = true
+    }
+  }, [])
 
   useEffect(() => {
     return () => {
@@ -61,6 +86,7 @@ export default function VirtualTryOn() {
     setUploadProgress(0)
     setUploadState('idle')
     setError(null)
+    setGeneratedImageUrl('')
     if (fileInputRef.current) {
       fileInputRef.current.value = ''
     }
@@ -84,6 +110,7 @@ export default function VirtualTryOn() {
     setUploadProgress(0)
     setUploadState('preview')
     setError(null)
+    setGeneratedImageUrl('')
   }
 
   const handleInputChange = (event) => {
@@ -124,9 +151,22 @@ export default function VirtualTryOn() {
       })
 
       setUploadResult(result)
-      setUploadState('success')
+      setUploadState('processing')
+      setUploadProgress(100)
+
+      // Start the real virtual try-on processing.
+      const processResponse = await processTryOn(result.upload_id, selectedProductId)
+
+      if (processResponse?.status === 'completed' && processResponse?.result_image) {
+        setGeneratedImageUrl(
+          `${import.meta.env.VITE_TRYON_API_URL?.replace(/\/api\/try-on$/, '') || 'http://127.0.0.1:8000'}${processResponse.result_image}`
+        )
+        setUploadState('success')
+      } else {
+        throw new Error(processResponse?.message || 'Virtual try-on did not produce a result image.')
+      }
     } catch (err) {
-      setError(err.message || 'Unable to upload image.')
+      setError(err.message || 'Unable to complete virtual try-on.')
       setUploadState('error')
     }
   }
@@ -136,8 +176,14 @@ export default function VirtualTryOn() {
   }
 
   const isUploading = uploadState === 'uploading'
+  const isProcessing = uploadState === 'processing'
   const showPreview = ['preview', 'uploading', 'error'].includes(uploadState) && previewUrl
   const showSuccess = uploadState === 'success'
+
+  const selectedProduct = useMemo(
+    () => products.find((product) => product.id === selectedProductId) || null,
+    [products, selectedProductId]
+  )
 
   return (
     <section id="try-on" className="relative py-24 overflow-hidden">
@@ -229,6 +275,18 @@ export default function VirtualTryOn() {
                           </div>
                         </div>
                       )}
+                      {isProcessing && (
+                        <div className="absolute inset-0 bg-black/50 backdrop-blur-sm flex flex-col items-center justify-center text-white">
+                          <Sparkles className="w-10 h-10 animate-pulse mb-4 text-primary" />
+                          <p className="font-semibold">Generating your try-on…</p>
+                          <div className="mt-4 flex items-center gap-2">
+                            <Loader2 className="w-4 h-4 animate-spin" />
+                            <span className="text-xs text-white/80">
+                              {selectedProduct ? `Wearing: ${selectedProduct.name}` : 'Applying garment'}
+                            </span>
+                          </div>
+                        </div>
+                      )}
                     </div>
 
                     {uploadState === 'error' && error && (
@@ -243,7 +301,7 @@ export default function VirtualTryOn() {
                     <div className="flex flex-col sm:flex-row gap-3">
                       <MagneticButton
                         onClick={handleUpload}
-                        disabled={isUploading}
+                        disabled={isUploading || isProcessing}
                         className="flex-1 px-6 py-3 rounded-2xl btn-fashion text-white font-semibold shadow-glow disabled:opacity-60 disabled:cursor-not-allowed"
                       >
                         {isUploading ? (
@@ -251,16 +309,21 @@ export default function VirtualTryOn() {
                             <Loader2 className="w-4 h-4 mr-2 animate-spin" />
                             Uploading…
                           </>
+                        ) : isProcessing ? (
+                          <>
+                            <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                            Generating…
+                          </>
                         ) : (
                           <>
-                            <Upload className="w-4 h-4 mr-2" />
-                            Upload Photo
+                            <Sparkles className="w-4 h-4 mr-2" />
+                            Generate Try-On
                           </>
                         )}
                       </MagneticButton>
                       <MagneticButton
                         onClick={resetUpload}
-                        disabled={isUploading}
+                        disabled={isUploading || isProcessing}
                         className="flex-1 px-6 py-3 rounded-2xl glass dark:glass font-semibold disabled:opacity-60 disabled:cursor-not-allowed"
                       >
                         Choose Different Photo
@@ -280,7 +343,7 @@ export default function VirtualTryOn() {
                     <div className="w-20 h-20 rounded-3xl bg-gradient-to-br from-red-500/20 to-orange-500/20 flex items-center justify-center mx-auto mb-6">
                       <AlertTriangle className="w-8 h-8 text-red-500" />
                     </div>
-                    <h3 className="font-display text-2xl font-normal mb-2">Upload Failed</h3>
+                    <h3 className="font-display text-2xl font-normal mb-2">Try-On Failed</h3>
                     <p className="text-gray-600 dark:text-gray-300 mb-6">{error}</p>
                     <MagneticButton
                       onClick={resetUpload}
@@ -293,37 +356,38 @@ export default function VirtualTryOn() {
 
                 {showSuccess && (
                   <motion.div
-                    key="uploaded"
+                    key="generated"
                     initial={{ opacity: 0, scale: 0.8 }}
                     animate={{ opacity: 1, scale: 1 }}
                     className="w-full"
                   >
                     <div className="relative rounded-3xl overflow-hidden aspect-[3/4] bg-gradient-to-br from-primary/10 to-secondary/10 mb-6">
-                      {previewUrl ? (
+                      {generatedImageUrl ? (
+                        <img
+                          src={generatedImageUrl}
+                          alt="Generated virtual try-on result"
+                          className="absolute inset-0 w-full h-full object-cover"
+                        />
+                      ) : previewUrl ? (
                         <img
                           src={previewUrl}
                           alt="Uploaded try-on photo"
                           className="absolute inset-0 w-full h-full object-cover"
                         />
                       ) : null}
-                      <div className="absolute inset-0 bg-black/35 flex items-center justify-center">
-                        <div className="text-center text-white">
-                          <div className="w-16 h-16 rounded-full btn-fashion mx-auto mb-4 flex items-center justify-center shadow-glow">
-                            <Check className="w-8 h-8 text-white" />
-                          </div>
-                          <p className="font-semibold">Photo Uploaded!</p>
-                          <p className="text-sm text-white/80 mt-1">
-                            Upload ID: {uploadResult?.upload_id?.slice(0, 8)}…
-                          </p>
+                      {generatedImageUrl && (
+                        <div className="absolute top-3 left-3 bg-black/60 backdrop-blur-sm text-white text-xs px-3 py-1.5 rounded-full flex items-center gap-1.5">
+                          <Check className="w-3.5 h-3.5 text-green-400" />
+                          AI Generated
                         </div>
-                      </div>
+                      )}
                     </div>
                     <MagneticButton
                       onClick={resetUpload}
                       className="w-full px-6 py-3 rounded-2xl glass dark:glass font-semibold"
                     >
                       <RefreshCw className="w-4 h-4 mr-2 inline-block" />
-                      Upload Different Photo
+                      Try Another Product
                     </MagneticButton>
                   </motion.div>
                 )}
@@ -334,80 +398,86 @@ export default function VirtualTryOn() {
           <Reveal direction="left" delay={0.2}>
             <div className="rounded-4xl glass dark:glass p-6 h-full">
               <div className="flex items-center justify-between mb-4">
-                <h3 className="font-display text-xl font-normal">Interactive Avatar</h3>
-                <div className="flex gap-2">
-                  <button
-                    onClick={() => setRotating(!rotating)}
-                    className={`w-10 h-10 rounded-full flex items-center justify-center transition-colors ${
-                      rotating ? 'btn-fashion text-white shadow-glow' : 'glass dark:glass'
-                    }`}
-                  >
-                    <RotateCw className="w-4 h-4" />
-                  </button>
-                  <button
-                    onClick={() => setZoomed(!zoomed)}
-                    className={`w-10 h-10 rounded-full flex items-center justify-center transition-colors ${
-                      zoomed ? 'btn-fashion text-white shadow-glow' : 'glass dark:glass'
-                    }`}
-                  >
-                    <ZoomIn className="w-4 h-4" />
-                  </button>
+                <h3 className="font-display text-xl font-normal">Select Product</h3>
+                <div className="flex items-center gap-2">
+                  <Shirt className="w-4 h-4 text-primary" />
+                  <span className="text-xs text-gray-500 dark:text-gray-400">
+                    {products.length} items
+                  </span>
                 </div>
               </div>
 
-              <div className="relative rounded-3xl overflow-hidden aspect-[3/4] bg-gradient-to-br from-primary/10 via-transparent to-secondary/10 mb-6">
-                <motion.div
-                  animate={{
-                    rotateY: rotating ? 360 : 0,
-                    scale: zoomed ? 1.2 : 1
-                  }}
-                  transition={{
-                    rotateY: { duration: 4, repeat: rotating ? Infinity : 0, ease: 'linear' },
-                    scale: { duration: 0.5 }
-                  }}
-                  className="absolute inset-0 flex items-center justify-center"
-                  style={{ transformStyle: 'preserve-3d' }}
-                >
-                  <div className="relative">
-                    <div className="w-24 h-24 rounded-full bg-gradient-to-br from-primary/30 to-secondary/30 mx-auto mb-2" />
-                    <div className="w-40 h-56 rounded-t-[100px] rounded-b-3xl bg-gradient-to-br from-primary/20 to-secondary/20 mx-auto relative overflow-hidden">
-                      <AnimatePresence mode="wait">
-                        <motion.div
-                          key={selectedClothing}
-                          initial={{ opacity: 0, y: 20 }}
-                          animate={{ opacity: 1, y: 0 }}
-                          exit={{ opacity: 0, y: -20 }}
-                          transition={{ duration: 0.5 }}
-                          className="absolute inset-0"
-                          style={{
-                            backgroundColor: clothingOptions.find(c => c.id === selectedClothing)?.color,
-                            opacity: 0.3
-                          }}
-                        />
-                      </AnimatePresence>
-                    </div>
-                    <div className="w-10 h-24 bg-gradient-to-br from-primary/20 to-secondary/20 mx-auto rounded-b-2xl" />
-                  </div>
-                </motion.div>
-              </div>
+              {productsLoading ? (
+                <div className="flex items-center justify-center py-12">
+                  <Loader2 className="w-6 h-6 animate-spin text-primary" />
+                  <span className="ml-2 text-sm text-gray-500 dark:text-gray-400">Loading products…</span>
+                </div>
+              ) : productsError ? (
+                <div className="rounded-2xl border border-red-500/30 bg-red-500/10 px-4 py-6 text-center">
+                  <AlertTriangle className="w-6 h-6 text-red-500 mx-auto mb-2" />
+                  <p className="text-sm text-red-200">{productsError}</p>
+                </div>
+              ) : (
+                <div className="grid grid-cols-2 gap-3 mb-6">
+                  {products.map((product) => (
+                    <button
+                      key={product.id}
+                      onClick={() => setSelectedProductId(product.id)}
+                      className={`relative rounded-2xl overflow-hidden aspect-[3/4] transition-all duration-300 ${
+                        selectedProductId === product.id
+                          ? 'ring-2 ring-primary shadow-glow scale-[1.02]'
+                          : 'hover:scale-[1.01]'
+                      }`}
+                    >
+                      <img
+                        src={product.image}
+                        alt={product.name}
+                        className="absolute inset-0 w-full h-full object-cover"
+                      />
+                      <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/80 to-transparent px-2 py-2">
+                        <p className="text-[10px] text-white font-medium leading-tight truncate">
+                          {product.name}
+                        </p>
+                        <p className="text-[9px] text-white/70">{product.brand}</p>
+                      </div>
+                      {selectedProductId === product.id && (
+                        <div className="absolute top-2 right-2 w-6 h-6 rounded-full btn-fashion flex items-center justify-center">
+                          <Check className="w-3.5 h-3.5 text-white" />
+                        </div>
+                      )}
+                    </button>
+                  ))}
+                </div>
+              )}
 
-              <div className="flex gap-2 flex-wrap">
-                {clothingOptions.map((item) => (
-                  <button
-                    key={item.id}
-                    onClick={() => setSelectedClothing(item.id)}
-                    className={`px-4 py-2 rounded-full text-sm transition-all duration-300 ${
-                      selectedClothing === item.id
-                        ? 'btn-fashion text-white shadow-glow'
-                        : 'glass dark:glass hover:bg-white/10 dark:hover:bg-white/10'
-                    }`}
-                  >
-                    <span className="flex items-center gap-2">
-                      <Shirt className="w-3 h-3" />
-                      {item.name}
-                    </span>
-                  </button>
-                ))}
+              {selectedProduct && (
+                <div className="rounded-2xl border border-primary/20 bg-primary/5 px-4 py-3">
+                  <p className="text-sm font-medium text-shine">{selectedProduct.name}</p>
+                  <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">
+                    {selectedProduct.brand} • {selectedProduct.category} • {selectedProduct.price}
+                  </p>
+                </div>
+              )}
+
+              <div className="mt-6">
+                <h4 className="font-display text-base font-normal mb-3 flex items-center gap-2">
+                  <ImageIcon className="w-4 h-4 text-secondary" />
+                  How it works
+                </h4>
+                <ol className="space-y-2 text-sm text-gray-600 dark:text-gray-300 font-light">
+                  <li className="flex items-start gap-2">
+                    <span className="w-5 h-5 rounded-full btn-fashion text-white text-xs flex items-center justify-center shrink-0 mt-0.5">1</span>
+                    Upload a clear photo of yourself (JPG/PNG, max 5 MB)
+                  </li>
+                  <li className="flex items-start gap-2">
+                    <span className="w-5 h-5 rounded-full btn-fashion text-white text-xs flex items-center justify-center shrink-0 mt-0.5">2</span>
+                    Choose a product from the catalog on the right
+                  </li>
+                  <li className="flex items-start gap-2">
+                    <span className="w-5 h-5 rounded-full btn-fashion text-white text-xs flex items-center justify-center shrink-0 mt-0.5">3</span>
+                    Generate your AI try-on and see the garment on you
+                  </li>
+                </ol>
               </div>
             </div>
           </Reveal>

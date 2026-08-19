@@ -74,6 +74,11 @@ Desktop.ini
 vite.config.js.timestamp-*
 vite.config.ts.timestamp-*
 
+# ─── Virtual Try-On generated results ───────────────────────────
+backend/results/
+backend/results/*
+!backend/results/.gitkeep
+
 # ─── Test artifacts ─────────────────────────────────────────────
 test_results.txt
 *.result.txt
