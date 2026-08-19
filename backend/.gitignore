@@ -4,3 +4,5 @@ __pycache__/
 *.pyc
 uploads/*
 !uploads/.gitkeep
+results/*
+!results/.gitkeep

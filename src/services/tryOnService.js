@@ -61,3 +61,32 @@ export async function uploadTryOnImage(file, { onProgress } = {}) {
     xhr.send(formData)
   })
 }
+
+/**
+ * Start virtual try-on processing for an uploaded image and a product.
+ * @param {string} userImage - Upload ID or filename returned from /api/try-on/upload
+ * @param {number|string} productId - Product ID from the catalog
+ * @returns {Promise<Object>} Try-on process response
+ */
+export async function processTryOn(userImage, productId) {
+  try {
+    const response = await fetch(`${API_BASE_URL}/process`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ user_image: userImage, product_id: Number(productId) }),
+    })
+
+    const data = await response.json().catch(() => null)
+
+    if (!response.ok) {
+      throw new Error(data?.detail || `Try-on processing failed (${response.status})`)
+    }
+
+    return data
+  } catch (error) {
+    if (error.name === 'TypeError' && error.message.includes('fetch')) {
+      throw new Error('Network error. Unable to connect to the try-on server.')
+    }
+    throw error
+  }
+}

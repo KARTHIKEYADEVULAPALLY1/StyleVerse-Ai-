@@ -28,15 +28,14 @@ def test_process_with_valid_image_and_product() -> None:
     response = requests.post(
         f'{BASE}/process',
         json={'user_image': upload_id, 'product_id': 1},
-        timeout=10,
+        timeout=60,
     )
     response.raise_for_status()
     data = response.json()
-    assert data == {
-        'status': 'processing',
-        'message': 'Virtual try-on processing has started.',
-        'product_id': 1,
-    }
+    assert data['status'] == 'completed'
+    assert data['message'] == 'Virtual try-on generated successfully.'
+    assert data['product_id'] == 1
+    assert data['result_image'] and data['result_image'].startswith('/api/try-on/results/')
     print('PASS valid process request:', data)
 
 
