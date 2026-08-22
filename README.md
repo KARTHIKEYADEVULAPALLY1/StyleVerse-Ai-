@@ -156,25 +156,30 @@ StyleVerse AI is a full-stack AI-powered fashion e-commerce platform that combin
 ```
 StyleVerse-AI/
 │
-├── src/                          # React frontend
-│   ├── components/
-│   │   ├── ui/                   # Reusable UI primitives
-│   │   ├── hero/                 # Hero section components
-│   │   ├── AISearch.jsx          # AI-powered search
-│   │   ├── AIStylist.jsx         # AI outfit recommendations
-│   │   ├── VirtualTryOn.jsx      # Virtual try-on upload
-│   │   ├── ProductDetails.jsx    # Product detail page
-│   │   ├── PriceComparison.jsx   # Multi-store price comparison
-│   │   ├── Wishlist.jsx          # User wishlist
-│   │   ├── CartSection.jsx       # Shopping cart
-│   │   ├── OrderConfirmation.jsx # Order confirmation
-│   │   ├── LoginPage.jsx         # Login/Signup
-│   │   └── ...                   # Other components
-│   ├── context/                  # React contexts (Auth, Cart, Wishlist, Theme)
-│   ├── data/                     # Static data & seed fallbacks
-│   ├── services/                 # API service layer
-│   ├── App.jsx                   # Main app with routing
-│   └── main.jsx                  # Entry point
+├── frontend/                      # React frontend (Vite)
+│   ├── src/
+│   │   ├── components/
+│   │   │   ├── ui/                 # Reusable UI primitives
+│   │   │   ├── hero/               # Hero section components
+│   │   │   ├── AISearch.jsx        # AI-powered search
+│   │   │   ├── AIStylist.jsx       # AI outfit recommendations
+│   │   │   ├── VirtualTryOn.jsx    # Virtual try-on upload
+│   │   │   ├── ProductDetails.jsx  # Product detail page
+│   │   │   ├── PriceComparison.jsx # Multi-store price comparison
+│   │   │   ├── Wishlist.jsx        # User wishlist
+│   │   │   ├── CartSection.jsx     # Shopping cart
+│   │   │   ├── OrderConfirmation.jsx # Order confirmation
+│   │   │   ├── LoginPage.jsx       # Login/Signup
+│   │   │   └── ...                 # Other components
+│   │   ├── context/                # React contexts (Auth, Cart, Wishlist, Theme)
+│   │   ├── data/                   # Static data & seed fallbacks
+│   │   ├── services/               # API service layer
+│   │   ├── App.jsx                 # Main app with routing
+│   │   └── main.jsx                # Entry point
+│   ├── package.json
+│   ├── package-lock.json
+│   ├── index.html
+│   └── postcss.config.js
 │
 ├── backend/                      # FastAPI backend
 │   ├── app/
@@ -187,9 +192,8 @@ StyleVerse-AI/
 │   ├── seed.py                   # Database seeding script
 │   └── .env.example              # Backend environment template
 │
-├── .env.example                  # Frontend environment template
+├── .env.example                  # Frontend environment template (root copy)
 ├── .gitignore
-├── package.json
 └── README.md
 ```
 
@@ -242,6 +246,9 @@ cd StyleVerse-Ai-
 ### 2. Frontend Setup
 
 ```bash
+# From project root, change into the frontend folder
+cd frontend
+
 # Install dependencies
 npm install
 
@@ -311,7 +318,7 @@ The application automatically falls back to SQLite (`styleverse_ai.db`) if no `D
 
 ## 🔧 Environment Variables
 
-### Frontend (`.env` at project root)
+### Frontend (frontend/.env)
 
 | Variable | Description | Default |
 |----------|-------------|---------|
