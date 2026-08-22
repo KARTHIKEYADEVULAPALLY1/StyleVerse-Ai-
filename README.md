@@ -246,6 +246,9 @@ cd StyleVerse-Ai-
 ### 2. Frontend Setup
 
 ```bash
+# From project root, change into the frontend folder
+cd frontend
+
 # Install dependencies
 npm install
 
@@ -315,7 +318,7 @@ The application automatically falls back to SQLite (`styleverse_ai.db`) if no `D
 
 ## 🔧 Environment Variables
 
-### Frontend (`.env` at project root)
+### Frontend (frontend/.env)
 
 | Variable | Description | Default |
 |----------|-------------|---------|
