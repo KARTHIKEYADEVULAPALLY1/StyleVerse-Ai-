@@ -1,6 +1,7 @@
-import { useEffect, useMemo, useState } from 'react'
-import { Route, Routes, useLocation } from 'react-router-dom'
-import { Loader2, AlertTriangle } from 'lucide-react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { Navigate, Route, Routes, useLocation, Link } from 'react-router-dom'
+import { Loader2, AlertTriangle, Globe } from 'lucide-react'
+import Reveal from './components/ui/Reveal'
 import { ThemeProvider } from './context/ThemeContext'
 import { AuthProvider } from './context/AuthContext'
 import { WishlistProvider } from './context/WishlistContext'
@@ -10,6 +11,10 @@ import Navbar from './components/Navbar'
 import Hero from './components/Hero'
 import AISearch from './components/AISearch'
 import TrendingProducts from './components/TrendingProducts'
+import RecommendationsRail from './components/ui/RecommendationsRail'
+import AIFeatures from './components/AIFeatures'
+import HowItWorks from './components/HowItWorks'
+import FinalCTA from './components/FinalCTA'
 import VirtualTryOn from './components/VirtualTryOn'
 import AIStylist from './components/AIStylist'
 import Wishlist from './components/Wishlist'
@@ -18,10 +23,16 @@ import About from './components/About'
 import Profile from './components/Profile'
 import Footer from './components/Footer'
 import ProductDetails from './components/ProductDetails'
+import MultiStoreDiscovery from './components/MultiStoreDiscovery'
+import AdminMerchantDashboard from './components/AdminMerchantDashboard'
+import AdminCatalogDashboard from './components/AdminCatalogDashboard'
+import AdminAnalyticsDashboard from './components/AdminAnalyticsDashboard'
 import LoginPage from './components/LoginPage'
 import OrderConfirmation from './components/OrderConfirmation'
+import OrderHistory from './components/OrderHistory'
 import { fetchProducts, searchProducts } from './services/productService'
 import { fetchRecommendations } from './services/recommendationService'
+import { trackSearch } from './services/analyticsService'
 import { filterProducts, priceOptions } from './data/products'
 import { useAuth } from './context/AuthContext'
 
@@ -37,6 +48,23 @@ function HomePage() {
   const [recommendLoading, setRecommendLoading] = useState(false)
   const [recommendError, setRecommendError] = useState(null)
 
+  // Brief loading state when filters change so the grid shows skeletons,
+  // avoiding flashing unrelated content or an empty gap.
+  const [filterLoading, setFilterLoading] = useState(false)
+  const isFirstFilterRender = useRef(true)
+
+  useEffect(() => {
+    if (isFirstFilterRender.current) {
+      isFirstFilterRender.current = false
+      return
+    }
+    setFilterLoading(true)
+    const timer = setTimeout(() => {
+      setFilterLoading(false)
+    }, 350)
+    return () => clearTimeout(timer)
+  }, [selectedCategory, selectedBrand, selectedMaxPrice])
+
   const [debouncedQuery, setDebouncedQuery] = useState('')
 
   useEffect(() => {
@@ -46,6 +74,17 @@ function HomePage() {
 
     return () => clearTimeout(timer)
   }, [query])
+
+  // Track ONE search event per completed search (debounced + non-empty +
+  // different from the previous term) - never per keystroke.
+  const lastTrackedSearch = useRef('')
+  useEffect(() => {
+    if (!debouncedQuery || debouncedQuery === lastTrackedSearch.current) {
+      return
+    }
+    lastTrackedSearch.current = debouncedQuery
+    trackSearch(debouncedQuery)
+  }, [debouncedQuery])
 
   useEffect(() => {
     let cancelled = false
@@ -82,42 +121,29 @@ function HomePage() {
 
   const { token, isAuthenticated } = useAuth()
 
-  useEffect(() => {
-    let cancelled = false
-
-    async function loadRecommendations() {
-      if (!isAuthenticated || !token) {
-        if (!cancelled) {
-          setRecommendedProducts([])
-          setRecommendError(null)
-        }
-        return
-      }
-
-      try {
-        setRecommendLoading(true)
-        setRecommendError(null)
-        const data = await fetchRecommendations(token)
-        if (!cancelled) {
-          setRecommendedProducts(Array.isArray(data) ? data : [])
-        }
-      } catch (err) {
-        if (!cancelled) {
-          setRecommendedProducts([])
-          setRecommendError(err.message || 'Could not load recommendations.')
-        }
-      } finally {
-        if (!cancelled) {
-          setRecommendLoading(false)
-        }
-      }
+  const loadRecommendations = useCallback(async () => {
+    if (!isAuthenticated || !token) {
+      setRecommendedProducts([])
+      setRecommendError(null)
+      return
     }
 
-    loadRecommendations()
-    return () => {
-      cancelled = true
+    try {
+      setRecommendLoading(true)
+      setRecommendError(null)
+      const data = await fetchRecommendations(token)
+      setRecommendedProducts(Array.isArray(data) ? data : [])
+    } catch (err) {
+      setRecommendedProducts([])
+      setRecommendError(err.message || 'Could not load recommendations.')
+    } finally {
+      setRecommendLoading(false)
     }
   }, [isAuthenticated, token])
+
+  useEffect(() => {
+    loadRecommendations()
+  }, [loadRecommendations])
 
   const productCategories = useMemo(
     () => ['All', ...new Set(products.map((product) => product.category).filter(Boolean))],
@@ -145,6 +171,16 @@ function HomePage() {
       <Navbar />
       <main className="relative z-10">
         <Hero />
+        {/* Entry point into the Multi-Store Discovery experience. */}
+        <Reveal className="flex justify-center -mt-2 mb-8 px-4">
+          <Link
+            to="/discover"
+            className="inline-flex items-center gap-2 px-6 py-3 rounded-full glass dark:glass border border-primary/30 font-semibold text-sm sm:text-base text-primary hover:border-primary hover:shadow-glow transition-all min-h-[44px]"
+          >
+            <Globe className="w-4 h-4" />
+            Discover Fashion Everywhere
+          </Link>
+        </Reveal>
         <AISearch
           query={query}
           onQueryChange={setQuery}
@@ -158,30 +194,66 @@ function HomePage() {
           brands={productBrands}
           priceOptions={priceOptions}
           resultCount={filteredProducts.length}
+          loading={loading}
         />
         {isAuthenticated && (
-          <TrendingProducts
+          <RecommendationsRail
             products={recommendedProducts}
             loading={recommendLoading}
             error={recommendError}
-            title="Recommended For You"
-            subtitle="Based on your style and shopping activity"
-            emptyTitle="No personal recommendations yet"
-            emptyMessage="Keep exploring and saving products to unlock better recommendations."
-            sectionId="recommendations"
+            isAuthenticated={isAuthenticated}
+            onRetry={loadRecommendations}
           />
         )}
-        <TrendingProducts products={filteredProducts} loading={loading} error={error} />
+        <TrendingProducts products={filteredProducts} loading={loading || filterLoading} error={error} />
+        <AIFeatures />
+        <HowItWorks />
         <VirtualTryOn />
         <AIStylist />
         <Wishlist />
         <CartSection />
         <About />
-        <Profile />
+        <FinalCTA />
       </main>
       <Footer />
     </>
   )
+}
+
+function ProtectedOrders() {
+  const { isAuthenticated, initialising } = useAuth()
+
+  if (initialising) {
+    return (
+      <section className="min-h-screen flex items-center justify-center">
+        <Loader2 className="w-8 h-8 text-primary animate-spin" />
+      </section>
+    )
+  }
+
+  if (!isAuthenticated) {
+    return <Navigate to="/login" replace />
+  }
+
+  return <OrderHistory />
+}
+
+function ProtectedDashboard() {
+  const { isAuthenticated, initialising } = useAuth()
+
+  if (initialising) {
+    return (
+      <section className="min-h-screen flex items-center justify-center">
+        <Loader2 className="w-8 h-8 text-primary animate-spin" />
+      </section>
+    )
+  }
+
+  if (!isAuthenticated) {
+    return <Navigate to="/login" replace />
+  }
+
+  return <Profile />
 }
 
 export default function App() {
@@ -202,8 +274,14 @@ export default function App() {
 
               <Routes>
                 <Route path="/" element={<HomePage />} />
+                <Route path="/discover" element={<MultiStoreDiscovery />} />
+                <Route path="/admin/merchants" element={<AdminMerchantDashboard />} />
+                <Route path="/admin/catalog" element={<AdminCatalogDashboard />} />
+                <Route path="/admin/analytics" element={<AdminAnalyticsDashboard />} />
                 <Route path="/product/:id" element={<ProductDetails />} />
                 <Route path="/order/:id" element={<OrderConfirmation />} />
+                <Route path="/orders" element={<ProtectedOrders />} />
+                <Route path="/profile" element={<ProtectedDashboard />} />
                 <Route path="/login" element={<LoginPage initialMode="login" />} />
                 <Route path="/signup" element={<LoginPage initialMode="signup" />} />
               </Routes>

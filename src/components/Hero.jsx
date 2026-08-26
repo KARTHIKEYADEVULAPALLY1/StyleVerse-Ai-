@@ -5,6 +5,10 @@ import FloatingParticles from './ui/FloatingParticles'
 import HolographicMannequin from './hero/HolographicMannequin'
 
 export default function Hero() {
+  const scrollTo = (id) => {
+    document.getElementById(id)?.scrollIntoView({ behavior: 'smooth' })
+  }
+
   return (
     <section id="home" className="relative min-h-screen flex items-center justify-center overflow-hidden pt-20">
       {/* Background effects */}
@@ -25,7 +29,9 @@ export default function Hero() {
             className="inline-flex items-center gap-2 px-5 py-2.5 rounded-full glass dark:glass mb-8 border border-primary/20"
           >
             <Sparkles className="w-4 h-4 text-primary" />
-            <span className="text-sm tracking-couture uppercase text-gray-600 dark:text-gray-300">AI Fashion Operating System</span>
+            <span className="text-sm tracking-couture uppercase text-gray-600 dark:text-gray-300">
+              AI Fashion Discovery & Styling
+            </span>
           </motion.div>
 
           <motion.h1
@@ -34,11 +40,11 @@ export default function Hero() {
             transition={{ duration: 0.8, delay: 0.2 }}
             className="font-display text-5xl sm:text-6xl lg:text-7xl xl:text-8xl font-normal leading-tight tracking-tight text-balance"
           >
-            Search Once.
+            Discover.
             <br />
-            <span className="text-shine">Compare Everywhere.</span>
+            <span className="text-shine">Style.</span>
             <br />
-            <span className="font-serif italic font-light">Try Before You Buy.</span>
+            <span className="font-serif italic font-light">Wear With Confidence.</span>
           </motion.h1>
 
           <motion.p
@@ -47,7 +53,7 @@ export default function Hero() {
             transition={{ duration: 0.8, delay: 0.4 }}
             className="mt-6 text-lg text-gray-600 dark:text-gray-300 max-w-xl mx-auto lg:mx-0 font-light tracking-wide"
           >
-            The world's first AI Fashion Search Engine with AI Stylist, Virtual Try-On and Smart Price Comparison.
+            AI-powered fashion discovery, personalized styling, virtual try-on, and smart price comparison — everything you need to shop smarter.
           </motion.p>
 
           <motion.div
@@ -56,11 +62,17 @@ export default function Hero() {
             transition={{ duration: 0.8, delay: 0.6 }}
             className="mt-10 flex flex-col sm:flex-row gap-4 justify-center lg:justify-start"
           >
-            <MagneticButton className="px-8 py-4 rounded-2xl btn-fashion text-white font-semibold tracking-wide uppercase text-sm shadow-glow">
+            <MagneticButton
+              onClick={() => scrollTo('ai-search')}
+              className="px-8 py-4 rounded-2xl btn-fashion text-white font-semibold tracking-wide uppercase text-sm shadow-glow"
+            >
               Start Shopping
               <ArrowRight className="w-5 h-5 ml-2" />
             </MagneticButton>
-            <MagneticButton className="px-8 py-4 rounded-2xl glass dark:glass font-semibold tracking-wide uppercase text-sm hover:bg-white/10 dark:hover:bg-white/10 transition-colors border border-primary/20">
+            <MagneticButton
+              onClick={() => scrollTo('stylist')}
+              className="px-8 py-4 rounded-2xl glass dark:glass font-semibold tracking-wide uppercase text-sm hover:bg-white/10 dark:hover:bg-white/10 transition-colors border border-primary/20"
+            >
               <Wand2 className="w-5 h-5 mr-2 text-primary" />
               Try AI Stylist
             </MagneticButton>
@@ -104,13 +116,15 @@ export default function Hero() {
         transition={{ delay: 1.5 }}
         className="absolute bottom-8 left-1/2 -translate-x-1/2"
       >
-        <motion.div
+        <motion.button
+          onClick={() => scrollTo('ai-search')}
           animate={{ y: [0, 10, 0] }}
           transition={{ duration: 2, repeat: Infinity }}
-          className="w-6 h-10 rounded-full border-2 border-gray-400 dark:border-gray-600 flex justify-center pt-2"
+          className="w-6 h-10 rounded-full border-2 border-gray-400 dark:border-gray-600 flex justify-center pt-2 cursor-pointer hover:border-primary transition-colors"
+          aria-label="Scroll to AI search"
         >
           <div className="w-1 h-2 rounded-full btn-fashion" />
-        </motion.div>
+        </motion.button>
       </motion.div>
     </section>
   )

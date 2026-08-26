@@ -5,6 +5,7 @@ import {
   fetchWishlist,
   removeProductFromWishlist,
 } from '../services/wishlistService'
+import { trackWishlistAdded, trackWishlistRemoved } from '../services/analyticsService'
 
 const WishlistContext = createContext(null)
 
@@ -59,6 +60,7 @@ export function WishlistProvider({ children }) {
 
     try {
       const savedProduct = await addProductToWishlist(token, Number(product.id))
+      trackWishlistAdded(savedProduct.id)
       setWishlistProducts((prev) => {
         if (prev.some((item) => Number(item.id) === Number(savedProduct.id))) {
           return prev
@@ -78,6 +80,7 @@ export function WishlistProvider({ children }) {
 
     try {
       await removeProductFromWishlist(token, Number(productId))
+      trackWishlistRemoved(productId)
       setWishlistProducts((prev) => prev.filter((item) => Number(item.id) !== Number(productId)))
       setError(null)
     } catch (err) {

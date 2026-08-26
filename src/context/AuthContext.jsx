@@ -80,6 +80,7 @@ export function AuthProvider({ children }) {
       name: userData.name,
       email: userData.email,
       created_at: userData.created_at,
+      is_admin: Boolean(userData.is_admin),
     }
     storeToken(accessToken)
     persistUser(minimalUser)

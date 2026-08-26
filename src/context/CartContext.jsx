@@ -2,6 +2,7 @@ import { createContext, useContext, useEffect, useMemo, useState } from 'react'
 import { useAuth } from './AuthContext'
 import { addCartItem, fetchCart, removeCartItem, updateCartItem } from '../services/cartService'
 import { createOrder } from '../services/orderService'
+import { trackCartAdded, trackCartRemoved } from '../services/analyticsService'
 
 const CartContext = createContext(null)
 
@@ -72,6 +73,7 @@ export function CartProvider({ children }) {
     try {
       const payload = { product_id: Number(product.id), quantity: Number(quantity), selected_size: size }
       const savedItem = await addCartItem(token, payload)
+      trackCartAdded(savedItem.product_id, { quantity: Number(quantity), size })
       setItems((prev) => {
         const matchIndex = prev.findIndex(
           (item) => Number(item.product_id) === Number(savedItem.product_id) && item.selected_size === savedItem.selected_size
@@ -127,6 +129,7 @@ export function CartProvider({ children }) {
 
     try {
       await removeCartItem(token, Number(productId), { selected_size: size })
+      trackCartRemoved(productId)
       setItems((prev) =>
         prev.filter(
           (item) => !(Number(item.product_id) === Number(productId) && item.selected_size === size)

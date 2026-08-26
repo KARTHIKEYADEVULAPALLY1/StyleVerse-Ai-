@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { ArrowLeft, LockKeyhole, Mail, Sparkles, User, Loader2 } from 'lucide-react'
+import { ArrowLeft, Eye, EyeOff, LockKeyhole, Mail, Sparkles, User, Loader2 } from 'lucide-react'
 import { useLocation, useNavigate } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext'
 import { loginUser, signupUser } from '../services/authService'
@@ -17,6 +17,7 @@ export default function LoginPage({ initialMode = 'login' }) {
   const [error, setError] = useState('')
   const [success, setSuccess] = useState('')
   const [loading, setLoading] = useState(false)
+  const [showPassword, setShowPassword] = useState(false)
 
   const handleChange = (event) => {
     const { name, value } = event.target
@@ -220,7 +221,7 @@ export default function LoginPage({ initialMode = 'login' }) {
                   <div className="flex items-center gap-3 rounded-2xl border border-white/10 bg-slate-950/20 px-4 py-3 focus-within:border-primary/60">
                     <LockKeyhole className="w-4 h-4 text-gray-400" />
                     <input
-                      type="password"
+                      type={showPassword ? 'text' : 'password'}
                       name="password"
                       value={form.password}
                       onChange={handleChange}
@@ -228,6 +229,14 @@ export default function LoginPage({ initialMode = 'login' }) {
                       disabled={loading}
                       className="w-full bg-transparent text-sm text-white placeholder:text-gray-400 focus:outline-none disabled:opacity-50"
                     />
+                    <button
+                      type="button"
+                      onClick={() => setShowPassword((prev) => !prev)}
+                      aria-label={showPassword ? 'Hide password' : 'Show password'}
+                      className="shrink-0 text-gray-400 hover:text-white transition-colors"
+                    >
+                      {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                    </button>
                   </div>
                 </label>
 

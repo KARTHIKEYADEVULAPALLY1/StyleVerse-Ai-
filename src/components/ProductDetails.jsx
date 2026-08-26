@@ -1,15 +1,122 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { motion } from 'framer-motion'
-import { ArrowLeft, ShoppingCart, Heart, Star, Tag, Truck, Loader2, AlertTriangle, LogIn } from 'lucide-react'
+import { ArrowLeft, ShoppingCart, Heart, Star, Tag, Truck, Loader2, AlertTriangle, LogIn, Sparkles } from 'lucide-react'
 import { useLocation, useNavigate, useParams } from 'react-router-dom'
 import { parsePrice } from '../data/products'
-import { fetchProductById } from '../services/productService'
+import { fetchProductById, fetchProducts } from '../services/productService'
+import { trackProductView } from '../services/analyticsService'
 import { useAuth } from '../context/AuthContext'
 import { useWishlist } from '../context/WishlistContext'
 import { useCart } from '../context/CartContext'
 import Reveal from './ui/Reveal'
 import MagneticButton from './ui/MagneticButton'
 import PriceComparison from './PriceComparison'
+import ProductCard from './ui/ProductCard'
+import ProductSkeleton from './ui/ProductSkeleton'
+import { EmptyState, ErrorState } from './ui/ProductState'
+
+function RelatedProducts({ productId, category }) {
+  const [relatedProducts, setRelatedProducts] = useState([])
+  const [relatedLoading, setRelatedLoading] = useState(false)
+  const [relatedError, setRelatedError] = useState(null)
+
+  useEffect(() => {
+    let cancelled = false
+
+    async function loadRelatedProducts() {
+      try {
+        setRelatedLoading(true)
+        setRelatedError(null)
+        const data = await fetchProducts()
+        if (!cancelled && Array.isArray(data)) {
+          // Filter to same category, exclude current product — uses real data only.
+          const related = data.filter(
+            (product) =>
+              Number(product.id) !== Number(productId) &&
+              (!category || product.category === category)
+          )
+          setRelatedProducts(related)
+        }
+      } catch (err) {
+        if (!cancelled) {
+          setRelatedProducts([])
+          setRelatedError(err.message || 'Unable to load related products.')
+        }
+      } finally {
+        if (!cancelled) {
+          setRelatedLoading(false)
+        }
+      }
+    }
+
+    loadRelatedProducts()
+    return () => {
+      cancelled = true
+    }
+  }, [productId, category])
+
+  return (
+    <section className="relative py-24 overflow-hidden">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <Reveal className="mb-10">
+          <h2 className="font-display text-3xl sm:text-4xl font-normal tracking-tight">
+            You May <span className="text-shine">Also Like</span>
+          </h2>
+          <p className="mt-3 text-lg text-gray-600 dark:text-gray-300 font-light">
+            More pieces from the same vibe
+          </p>
+        </Reveal>
+
+        {relatedLoading ? (
+          <div className="flex gap-6 overflow-x-auto no-scrollbar pb-4 snap-x snap-mandatory" aria-busy="true" aria-label="Loading related products">
+            {[1, 2, 3, 4].map((i) => (
+              <ProductSkeleton key={i} />
+            ))}
+          </div>
+        ) : relatedError ? (
+          <ErrorState
+            message={relatedError}
+            onRetry={() => {
+              setRelatedLoading(true)
+              setRelatedError(null)
+              fetchProducts()
+                .then((data) => {
+                  if (Array.isArray(data)) {
+                    setRelatedProducts(
+                      data.filter(
+                        (product) =>
+                          Number(product.id) !== Number(productId) &&
+                          (!category || product.category === category)
+                      )
+                    )
+                  }
+                })
+                .catch((err) => setRelatedError(err.message || 'Unable to load related products.'))
+                .finally(() => setRelatedLoading(false))
+            }}
+          />
+        ) : relatedProducts.length === 0 ? (
+          <EmptyState
+            icon={Sparkles}
+            title="No related products yet"
+            message="No related products found for this item."
+          />
+        ) : (
+          <div className="flex gap-6 overflow-x-auto no-scrollbar snap-x snap-mandatory pb-4">
+            {relatedProducts.slice(0, 8).map((product, i) => (
+              <ProductCard
+                key={product.id}
+                product={product}
+                index={i}
+                showMatch={false}
+              />
+            ))}
+          </div>
+        )}
+      </div>
+    </section>
+  )
+}
 
 export default function ProductDetails() {
   const { id } = useParams()
@@ -22,7 +129,7 @@ export default function ProductDetails() {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
   const [selectedSize, setSelectedSize] = useState('')
-  const [authAction, setAuthAction] = useState(null) // 'wishlist' | 'cart' | null
+  const [authAction, setAuthAction] = useState(null)
 
   useEffect(() => {
     let cancelled = false
@@ -56,7 +163,16 @@ export default function ProductDetails() {
     }
   }, [product])
 
-  // Once the user logs in, clear any pending auth prompt.
+  // One product_viewed event per Product Details page open (privacy-conscious:
+  // only the product id is reported, never any browsing fingerprint).
+  const trackedViewId = useRef(null)
+  useEffect(() => {
+    if (product?.id && Number(product.id) !== Number(trackedViewId.current)) {
+      trackedViewId.current = product.id
+      trackProductView(product.id)
+    }
+  }, [product])
+
   useEffect(() => {
     if (isAuthenticated) {
       setAuthAction(null)
@@ -82,7 +198,6 @@ export default function ProductDetails() {
   }
 
   const handleLoginRedirect = () => {
-    // Preserve the current product page so the user can return after logging in.
     navigate('/login', { state: { from: location.pathname } })
   }
 
@@ -286,7 +401,10 @@ export default function ProductDetails() {
         </div>
       </div>
 
+      {/* Shopping decision hierarchy: product info + options above, then
+          best price -> compare stores -> buy from merchant. */}
       <PriceComparison productId={product.id} />
+      <RelatedProducts productId={product.id} category={product.category} />
     </section>
   )
 }
