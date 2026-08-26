@@ -46,6 +46,13 @@ StyleVerse AI is a full-stack AI-powered fashion e-commerce platform that combin
   - Budget (₹1,000 – ₹10,000)
 - Rule-based category/occasion/color matching against the product catalog
 
+### 🪞 My Style Profile
+- Aggregates your real activity (views, wishlist, cart, purchases) into a living style profile
+- Derives favorite categories, brands, colors, preferred styles, and average price preference — strictly from actual interactions, never invented or self-claimed
+- Weighted **Profile Strength** score (0–100): Purchases > Wishlists > Cart adds > Views
+- Visual color swatches, price preference in ₹, and profile breakdown by intent
+- Transparent privacy messaging linking to how StyleVerse learns your style
+
 ### 💰 Smart Price Comparison
 - Multi-store price comparison (Ajio, Myntra, Amazon, Flipkart)
 - Best price highlighting with savings calculation
@@ -163,6 +170,7 @@ StyleVerse-AI/
 │   │   ├── AISearch.jsx          # AI-powered search
 │   │   ├── AIStylist.jsx         # AI outfit recommendations
 │   │   ├── VirtualTryOn.jsx      # Virtual try-on upload
+│   │   ├── StyleProfile.jsx      # My Style Profile dashboard
 │   │   ├── ProductDetails.jsx    # Product detail page
 │   │   ├── PriceComparison.jsx   # Multi-store price comparison
 │   │   ├── Wishlist.jsx          # User wishlist
@@ -203,6 +211,7 @@ StyleVerse-AI/
 | POST | `/api/auth/signup` | Register a new user | No |
 | POST | `/api/auth/login` | Login & get JWT | No |
 | GET | `/api/auth/me` | Get current user profile | JWT |
+| GET | `/api/style-profile` | Personalized style profile from real activity | JWT |
 | GET | `/api/products` | List all products | No |
 | GET | `/api/products/search?q=` | Semantic product search | No |
 | GET | `/api/products/{id}` | Get product details | No |
@@ -444,7 +453,7 @@ The following features are **not fully implemented** and should be treated as MV
 
 ## 📄 License
 
-No license has been selected for this project yet.
+This project is licensed under the [MIT License](./LICENSE).
 
 ---
 
