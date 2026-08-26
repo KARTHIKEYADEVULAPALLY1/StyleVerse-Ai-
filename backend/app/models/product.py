@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from typing import List
 
-from sqlalchemy import Float, Integer, JSON, String, Text
+from sqlalchemy import Boolean, Float, Integer, JSON, String, Text
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 try:
@@ -32,6 +32,8 @@ class Product(Base):
         Vector(64) if Vector is not None else Text,
         nullable=True,
     )
+    # Soft-visibility flag: ingested/legacy products can be hidden without deletion.
+    is_active: Mapped[bool] = mapped_column(Boolean, nullable=False, default=True)
 
     wishlist_items: Mapped[list['WishlistItem']] = relationship(
         'WishlistItem',

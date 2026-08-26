@@ -3,6 +3,8 @@ from __future__ import annotations
 from typing import List, Optional
 from pydantic import BaseModel, ConfigDict, Field, computed_field
 
+from app.schemas.product_offer import ProductOfferResponse
+
 
 class ProductBase(BaseModel):
     name: str
@@ -26,6 +28,10 @@ class ProductResponse(ProductBase):
     model_config = ConfigDict(from_attributes=True)
 
     id: int
+    is_active: bool = True
+    # Merchant offers attached to this normalized product (additive field;
+    # existing consumers simply ignore it).
+    offers: List[ProductOfferResponse] = Field(default_factory=list)
 
     @computed_field
     @property

@@ -86,6 +86,27 @@ def get_current_user(
     return user
 
 
+def get_current_user_optional(
+    credentials: HTTPAuthorizationCredentials | None = Security(_bearer),
+    db: Session = Depends(get_db),
+) -> User | None:
+    """Resolve the caller's user when a valid token is present, else None.
+
+    Used by privacy-conscious tracking endpoints: anonymous visitors stay
+    anonymous, authenticated users may optionally be associated with their
+    clicks. Invalid/expired tokens degrade to anonymous instead of erroring.
+    """
+    if not credentials or not credentials.credentials:
+        return None
+    try:
+        payload = decode_access_token(credentials.credentials)
+        user_id_raw = payload.get('sub')
+        user_id = int(user_id_raw)  # type: ignore[arg-type]
+    except (jwt.PyJWTError, TypeError, ValueError):
+        return None
+    return db.query(User).filter(User.id == user_id).first()
+
+
 # ---------------------------------------------------------------------------
 # Routes
 # ---------------------------------------------------------------------------

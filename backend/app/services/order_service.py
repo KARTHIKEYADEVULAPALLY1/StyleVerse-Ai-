@@ -78,6 +78,22 @@ def create_order_from_cart(db: Session, user_id: int) -> Order:
     db.commit()
     db.refresh(order)
 
+    # Record one purchase signal per ordered product so personalization and
+    # analytics reflect real purchases. Bookkeeping failures never fail orders.
+    from app.services.event_service import record_user_event
+
+    for item in cart_items:
+        try:
+            record_user_event(
+                db,
+                event_type='order_created',
+                user_id=user_id,
+                product_id=item.product_id,
+                event_metadata={'quantity': int(item.quantity)},
+            )
+        except Exception:
+            db.rollback()
+
     for item in cart_items:
         db.delete(item)
     db.commit()

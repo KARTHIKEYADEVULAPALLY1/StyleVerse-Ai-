@@ -1,13 +1,16 @@
 from __future__ import annotations
 
 from typing import List
+
 from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi.responses import RedirectResponse
 from sqlalchemy.orm import Session
 
 from app.database import get_db
+from app.models.product_offer import ProductOffer
 from app.schemas.product import ProductResponse
 from app.schemas.product_offer import ProductOfferResponse, ProductPricesResponse
-from app.services.price_service import get_product_prices
+from app.services.price_service import get_product_prices, serialize_offers
 from app.services.product_service import get_all_products, get_product_by_id, search_products
 
 router = APIRouter(prefix='/api/products', tags=['products'])
@@ -49,6 +52,7 @@ def get_product_price_comparison(product_id: int, db: Session = Depends(get_db))
         highest_price=price_data['highest_price'],
         savings=price_data['savings'],
         currency=price_data['currency'],
+        best_price_verified=price_data.get('best_price_verified', True),
     )
 
 
@@ -61,4 +65,11 @@ def get_product(product_id: int, db: Session = Depends(get_db)) -> ProductRespon
             status_code=status.HTTP_404_NOT_FOUND,
             detail=f'Product with ID {product_id} not found.',
         )
-    return ProductResponse.model_validate(product)
+    response = ProductResponse.model_validate(product)
+    # Enrich the additive `offers` field with merchant identity + visit URLs so
+    # the product detail payload is self-sufficient. Legacy consumers ignore it.
+    response.offers = [
+        ProductOfferResponse.model_validate(offer)
+        for offer in serialize_offers(db, list(product.offers), product_id, product.name)
+    ]
+    return response

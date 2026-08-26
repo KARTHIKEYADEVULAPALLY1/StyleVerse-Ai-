@@ -1,0 +1,35 @@
+{
+  "merchant": "flipkart",
+  "products": [
+    {
+      "external_product_id": "FLK-4001",
+      "name": "Classic White Sneakers",
+      "brand": "Nike",
+      "category": "Footwear",
+      "description": "White sneakers listed by a Flipkart fashion seller.",
+      "price": 5199.0,
+      "currency": "INR",
+      "image_url": "https://images.unsplash.com/photo-1542291026-7eec264c27ff?w=400&q=80",
+      "product_url": "https://www.flipkart.com/p/FLK-4001",
+      "availability": "out_of_stock",
+      "rating": 4.3,
+      "colors": ["White"],
+      "sizes": ["8", "9", "10"]
+    },
+    {
+      "external_product_id": "FLK-4002",
+      "name": "Winter Wool Coat",
+      "brand": "Uniqlo",
+      "category": "Outerwear",
+      "description": "Warm insulated wool coat for cold weather, sold on Flipkart.",
+      "price": 6299.0,
+      "currency": "INR",
+      "image_url": "https://images.unsplash.com/photo-1529139574466-a303027c1d8b?w=400&q=80",
+      "product_url": "https://www.flipkart.com/p/FLK-4002",
+      "availability": "in_stock",
+      "rating": 4.4,
+      "colors": ["Charcoal", "Camel"],
+      "sizes": ["M", "L", "XL"]
+    }
+  ]
+}

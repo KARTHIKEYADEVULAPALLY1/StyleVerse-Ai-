@@ -1,0 +1,4 @@
+external_product_id,name,brand,category,description,price,currency,image_url,product_url,availability,rating,colors,sizes
+ST-900,Streetline Cargo Pants,Urbane,Pants,Rugged cargo pants with six pockets,3299.50,INR,https://images.unsplash.com/photo-1548883354-94bcfe321cbb?w=400&q=80,https://streetline.example.com/p/cargo-pants,in stock,4.3,Khaki|Black,30|32|34
+ST-901,Retro Windbreaker Jacket,Urbane,Jackets,Lightweight windbreaker with hood,4599,INR,https://images.unsplash.com/photo-1551028719-00167b16eac5?w=400&q=80,https://streetline.example.com/p/retro-windbreaker,in stock,4.7,Red|Navy,S|M|L|XL
+ST-902,Broken Price Sneakers,Urbane,Sneakers,This row has an invalid price on purpose,-999,INR,https://images.unsplash.com/photo-1600185365483-26d7a4cc7519?w=400&q=80,https://streetline.example.com/p/broken-price,oos,3.9,Grey,41|42
