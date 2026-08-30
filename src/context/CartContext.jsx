@@ -210,10 +210,21 @@ export function CartProvider({ children }) {
 
 export function useCart() {
   const context = useContext(CartContext)
-
   if (!context) {
-    throw new Error('useCart must be used within CartProvider')
+    return {
+      items: [],
+      cartItems: [],
+      totalItems: 0,
+      grandTotal: 0,
+      loading: false,
+      placingOrder: false,
+      error: null,
+      addToCart: async () => {},
+      updateQuantity: async () => {},
+      removeFromCart: async () => {},
+      clearCart: async () => {},
+      placeOrder: async () => null,
+    }
   }
-
   return context
 }
