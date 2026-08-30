@@ -18,6 +18,9 @@ import MagneticButton from './ui/MagneticButton'
 import { uploadTryOnImage, processTryOn, validateTryOnFile, MAX_TRYON_FILE_SIZE_BYTES } from '../services/tryOnService'
 import { fetchProducts } from '../services/productService'
 import { trackVirtualTryOnUsed } from '../services/analyticsService'
+import ProductImage from './ui/ProductImage'
+import { useToast } from './ui/Toast'
+import { getErrorMessage } from '../services/apiClient'
 
 const fitMetrics = [
   { label: 'Shoulder Fit', value: 92, color: '#FF2E88' },
@@ -29,6 +32,7 @@ const fitMetrics = [
 ]
 
 export default function VirtualTryOn() {
+  const toast = useToast()
   const fileInputRef = useRef(null)
   const [selectedFile, setSelectedFile] = useState(null)
   const [previewUrl, setPreviewUrl] = useState('')
@@ -143,7 +147,7 @@ export default function VirtualTryOn() {
   }
 
   const handleUpload = async () => {
-    // Disable until both photo + product selected; prevent duplicate submissions.
+    // Prevent duplicate submissions while processing.
     if (!selectedFile || !selectedProduct || isLoading) return
 
     try {
@@ -159,23 +163,26 @@ export default function VirtualTryOn() {
       setUploadState('processing')
       setUploadProgress(100)
 
-      // Start the real virtual try-on processing.
+      // Start the real virtual try-on processing with 30s timeout for file uploads.
       const processResponse = await processTryOn(result.upload_id, selectedProductId)
 
       if (processResponse?.status === 'completed' && processResponse?.result_image) {
-        setGeneratedImageUrl(
-          `${import.meta.env.VITE_TRYON_API_URL?.replace(/\/api\/try-on$/, '') || 'http://127.0.0.1:8000'}${processResponse.result_image}`
-        )
+        const backendBaseUrl = (import.meta.env.VITE_TRYON_API_URL?.replace(/\/api\/try-on\/?$/, '') || import.meta.env.VITE_API_BASE_URL || 'http://127.0.0.1:8000').replace(/\/+$/, '')
+        setGeneratedImageUrl(`${backendBaseUrl}${processResponse.result_image}`)
         setUploadState('success')
-        // Usage analytics only - the uploaded photo itself is NEVER referenced.
+        toast.success('Virtual try-on complete!')
+        // Usage analytics only — the uploaded photo itself is NEVER referenced.
         trackVirtualTryOnUsed(selectedProductId)
       } else {
         // Backend is still running the MVP/stub — show "being prepared" state honestly.
         setUploadState('success')
+        toast.success('Virtual try-on complete!')
       }
     } catch (err) {
-      setError(err.message || 'Unable to complete virtual try-on.')
+      const friendlyMessage = getErrorMessage(err)
+      setError(friendlyMessage)
       setUploadState('error')
+      toast.error(friendlyMessage)
     }
   }
 
@@ -224,9 +231,8 @@ export default function VirtualTryOn() {
               onDragOver={handleDragOver}
               onDragLeave={handleDragLeave}
               onDrop={handleDrop}
-              className={`relative rounded-4xl glass dark:glass p-8 h-full flex flex-col items-center justify-center text-center transition-all duration-300 ${
-                dragging ? 'border-2 border-primary scale-[1.02] shadow-glow' : 'border border-white/10'
-              }`}
+              className={`relative rounded-4xl glass dark:glass p-8 h-full flex flex-col items-center justify-center text-center transition-all duration-300 ${dragging ? 'border-2 border-primary scale-[1.02] shadow-glow' : 'border border-white/10'
+                }`}
             >
               <input
                 ref={fileInputRef}
@@ -295,9 +301,10 @@ export default function VirtualTryOn() {
                       </button>
                     </div>
                     <div className="relative rounded-3xl overflow-hidden aspect-[3/4] bg-gradient-to-br from-primary/10 to-secondary/10 mb-4">
-                      <img
+                      <ProductImage
                         src={previewUrl}
                         alt="Selected try-on preview"
+                        type="user-upload"
                         className="absolute inset-0 w-full h-full object-cover"
                       />
                     </div>
@@ -348,9 +355,10 @@ export default function VirtualTryOn() {
                     className="w-full"
                   >
                     <div className="relative rounded-3xl overflow-hidden aspect-[3/4] bg-gradient-to-br from-primary/10 to-secondary/10 mb-6">
-                      <img
+                      <ProductImage
                         src={previewUrl}
                         alt="Uploaded try-on photo"
+                        type="user-upload"
                         className="absolute inset-0 w-full h-full object-cover"
                       />
                       <div className="absolute inset-0 bg-black/55 backdrop-blur-sm flex flex-col items-center justify-center text-white">
@@ -443,9 +451,10 @@ export default function VirtualTryOn() {
                         <h3 className="font-display text-lg font-normal mb-3">Your Virtual Try-On</h3>
                         <div className="grid grid-cols-2 gap-3 mb-4">
                           <div className="rounded-2xl overflow-hidden aspect-[3/4] relative">
-                            <img
+                            <ProductImage
                               src={previewUrl}
                               alt="Your original photo"
+                              type="user-upload"
                               className="absolute inset-0 w-full h-full object-cover"
                             />
                             <span className="absolute bottom-2 left-2 bg-black/60 backdrop-blur-sm text-white text-[10px] px-2 py-1 rounded-full">
@@ -463,9 +472,10 @@ export default function VirtualTryOn() {
                             </motion.div>
                           </div>
                           <div className="col-span-2 rounded-2xl overflow-hidden aspect-[3/4] relative">
-                            <img
+                            <ProductImage
                               src={generatedImageUrl}
                               alt="AI generated virtual try-on result"
+                              type="tryon-result"
                               className="absolute inset-0 w-full h-full object-cover"
                             />
                             <span className="absolute bottom-2 left-2 bg-black/60 backdrop-blur-sm text-white text-[10px] px-2 py-1 rounded-full flex items-center gap-1">
@@ -479,9 +489,10 @@ export default function VirtualTryOn() {
                       <>
                         {/* Stub response → honest "being prepared" status */}
                         <div className="relative rounded-3xl overflow-hidden aspect-[3/4] bg-gradient-to-br from-primary/10 to-secondary/10 mb-4">
-                          <img
+                          <ProductImage
                             src={previewUrl}
                             alt="Uploaded try-on photo"
+                            type="user-upload"
                             className="absolute inset-0 w-full h-full object-cover"
                           />
                           <div className="absolute inset-0 bg-black/45 backdrop-blur-[2px] flex flex-col items-center justify-center text-center px-4">
@@ -548,17 +559,12 @@ export default function VirtualTryOn() {
                         key={product.id}
                         onClick={() => setSelectedProductId(product.id)}
                         aria-pressed={active}
-                        className={`relative rounded-2xl overflow-hidden aspect-[3/4] transition-all duration-300 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary ${
-                          active
-                            ? 'ring-2 ring-primary shadow-glow scale-[1.02]'
-                            : 'hover:scale-[1.01] opacity-90 hover:opacity-100'
-                        }`}
+                        className={`relative rounded-2xl overflow-hidden aspect-[3/4] transition-all duration-300 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary ${active
+                          ? 'ring-2 ring-primary shadow-glow scale-[1.02]'
+                          : 'hover:scale-[1.01] opacity-90 hover:opacity-100'
+                          }`}
                       >
-                        <img
-                          src={product.image}
-                          alt={product.name}
-                          className="absolute inset-0 w-full h-full object-cover"
-                        />
+                        <ProductImage src={product.image} alt={product.name} containerClassName="absolute inset-0" className="w-full h-full object-cover" />
                         <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/80 to-transparent px-2.5 py-2">
                           <p className="text-[11px] text-white font-medium leading-tight truncate">
                             {product.name}
@@ -579,11 +585,7 @@ export default function VirtualTryOn() {
               {selectedProduct && (
                 <div className="rounded-2xl border border-primary/20 bg-primary/5 px-4 py-3">
                   <div className="flex items-start gap-3">
-                    <img
-                      src={selectedProduct.image}
-                      alt={selectedProduct.name}
-                      className="w-12 h-14 rounded-xl object-cover shrink-0"
-                    />
+                    <ProductImage src={selectedProduct.image} alt={selectedProduct.name} containerClassName="w-12 h-14 rounded-xl shrink-0" className="w-full h-full object-cover" />
                     <div>
                       <p className="text-sm font-medium text-primary">{selectedProduct.name}</p>
                       <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">

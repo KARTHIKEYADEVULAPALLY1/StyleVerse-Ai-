@@ -3,6 +3,7 @@ from __future__ import annotations
 from typing import List, Optional
 
 from pydantic import BaseModel
+from app.schemas.preferences import UserPreferencesResponse
 
 
 class PriceRangeResponse(BaseModel):
@@ -43,3 +44,5 @@ class StyleProfileResponse(BaseModel):
     purchase_categories: List[str] = []
     #: 0-100 measure of how much useful preference data the user has generated.
     profile_strength: int = 0
+    #: Explicit choices from onboarding, kept separate from behavioral signals.
+    onboarding_preferences: Optional[UserPreferencesResponse] = None

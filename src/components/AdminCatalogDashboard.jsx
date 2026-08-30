@@ -240,22 +240,92 @@ function InspectionDrawer({ productId, onClose }) {
                 )}
               </section>
 
+              {/* Normalized Metadata */}
+              <section aria-label="Normalized Metadata" className="rounded-2xl glass p-4 space-y-3 border border-white/10">
+                <h4 className="text-xs uppercase tracking-[0.2em] text-primary font-bold">
+                  Normalized Metadata Quality
+                </h4>
+                <div className="grid grid-cols-2 gap-2 text-xs">
+                  <div>
+                    <span className="text-gray-400">Subcategory:</span>{' '}
+                    <span className="font-semibold text-white">{product.subcategory || '—'}</span>
+                  </div>
+                  <div>
+                    <span className="text-gray-400">Gender / Target:</span>{' '}
+                    <span className="font-semibold text-white">{product.target_gender || 'Unisex'}</span>
+                  </div>
+                </div>
+
+                {product.styles?.length > 0 && (
+                  <div>
+                    <span className="text-xs text-gray-400 block mb-1">Styles:</span>
+                    <div className="flex flex-wrap gap-1.5">
+                      {product.styles.map((s) => (
+                        <span key={s} className="px-2 py-0.5 rounded-md bg-primary/20 text-primary text-[11px] font-medium">
+                          {s}
+                        </span>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {product.occasions?.length > 0 && (
+                  <div>
+                    <span className="text-xs text-gray-400 block mb-1">Occasions:</span>
+                    <div className="flex flex-wrap gap-1.5">
+                      {product.occasions.map((o) => (
+                        <span key={o} className="px-2 py-0.5 rounded-md bg-secondary/20 text-purple-300 text-[11px] font-medium">
+                          {o}
+                        </span>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {product.normalized_colors?.length > 0 && (
+                  <div>
+                    <span className="text-xs text-gray-400 block mb-1">Colors:</span>
+                    <div className="flex flex-wrap gap-1.5">
+                      {product.normalized_colors.map((c) => (
+                        <span key={c} className="px-2 py-0.5 rounded-md bg-white/10 text-gray-200 text-[11px] font-medium">
+                          {c}
+                        </span>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {product.materials?.length > 0 && (
+                  <div>
+                    <span className="text-xs text-gray-400 block mb-1">Materials:</span>
+                    <div className="flex flex-wrap gap-1.5">
+                      {product.materials.map((m) => (
+                        <span key={m} className="px-2 py-0.5 rounded-md bg-blue-500/10 text-blue-300 text-[11px] font-medium">
+                          {m}
+                        </span>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </section>
+
               {/* Data Quality Warnings */}
               {product.warnings.length > 0 && (
                 <section aria-label="Data Quality Warnings">
-                  <h4 className="text-xs uppercase tracking-[0.2em] text-gray-500 dark:text-gray-400 mb-2">
-                    Data Quality Warnings
+                  <h4 className="text-xs uppercase tracking-[0.2em] text-amber-400 font-bold mb-2 flex items-center gap-1.5">
+                    <AlertTriangle className="w-3.5 h-3.5" /> Data Quality Warnings ({product.warnings.length})
                   </h4>
                   <ul className="space-y-1.5">
                     {product.warnings.map((warning) => (
-                      <li key={warning} className="rounded-xl bg-amber-500/10 px-3 py-2 text-xs text-amber-700 dark:text-amber-400 flex items-start gap-2">
-                        <AlertTriangle className="w-3.5 h-3.5 shrink-0 mt-0.5" />
+                      <li key={warning} className="rounded-xl bg-amber-500/10 px-3 py-2 text-xs text-amber-300 flex items-start gap-2 border border-amber-500/20">
+                        <AlertTriangle className="w-3.5 h-3.5 shrink-0 mt-0.5 text-amber-400" />
                         {warning}
                       </li>
                     ))}
                   </ul>
                 </section>
               )}
+
 
               {/* Merchant Offers */}
               <section aria-label="Merchant Offers">

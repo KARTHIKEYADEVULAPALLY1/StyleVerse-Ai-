@@ -1,10 +1,13 @@
 import { createContext, useContext, useEffect, useMemo, useState } from 'react'
+import { useNavigate } from 'react-router-dom'
 import {
   getCurrentUser,
   getStoredToken,
   removeToken,
   storeToken,
 } from '../services/authService'
+import { useToast } from '../components/ui/Toast'
+import { AUTH_UNAUTHORIZED_EVENT } from '../services/apiClient'
 
 const AuthContext = createContext(null)
 const USER_KEY = 'styleverse-user'
@@ -42,6 +45,31 @@ export function AuthProvider({ children }) {
   const [user, setUser] = useState(() => readStoredUser())
   const [token, setToken] = useState(() => getStoredToken())
   const [initialising, setInitialising] = useState(true)
+  const navigate = useNavigate()
+  const toast = useToast()
+
+  // Handle session expiry event dispatched by apiClient on 401 responses
+  useEffect(() => {
+    const handleUnauthorized = () => {
+      // Clear auth state but preserve cart/wishlist (they're in separate contexts)
+      removeToken()
+      persistUser(null)
+      setUser(null)
+      setToken(null)
+
+      // Show toast with action to navigate to login
+      toast.warning('Your session has expired. Please log in to continue.', {
+        duration: 0, // No auto-dismiss - user must take action
+        action: {
+          label: 'Log in',
+          onClick: () => navigate('/login'),
+        },
+      })
+    }
+
+    window.addEventListener(AUTH_UNAUTHORIZED_EVENT, handleUnauthorized)
+    return () => window.removeEventListener(AUTH_UNAUTHORIZED_EVENT, handleUnauthorized)
+  }, [navigate, toast])
 
   // On mount: verify stored JWT with /api/auth/me to restore session or clear stale data
   useEffect(() => {

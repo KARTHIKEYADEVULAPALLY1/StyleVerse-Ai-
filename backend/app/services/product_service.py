@@ -16,16 +16,20 @@ except ImportError:  # pragma: no cover
 
 from app.models.product import Product
 
+from app.services.normalization_service import (
+    normalize_product_metadata,
+)
+
 SEMANTIC_SYNONYMS = {
-    'formal': {'formal', 'elegant', 'sophisticated', 'polished', 'dressy', 'evening', 'dinner', 'party', 'night', 'date'},
-    'casual': {'casual', 'college', 'daily', 'relaxed', 'everyday', 'streetwear', 'comfortable', 'lazy', 'simple'},
-    'winter': {'winter', 'cold', 'warm', 'coat', 'outerwear', 'layered', 'wool', 'chilly', 'holiday'},
-    'travel': {'travel', 'commute', 'airport', 'packed', 'lightweight', 'weekend', 'outdoor'},
-    'office': {'office', 'work', 'smart', 'professional', 'tailored', 'meeting'},
-    'athleisure': {'athleisure', 'sporty', 'active', 'workout', 'running', 'training', 'comfort'},
-    'minimal': {'minimal', 'clean', 'plain', 'simple', 'neutral', 'classic'},
-    'summer': {'summer', 'light', 'bright', 'sunny', 'beach', 'tropical'},
-    'night': {'night', 'evening', 'party', 'date', 'dinner'},
+    'formal': {'formal', 'formalwear', 'elegant', 'sophisticated', 'polished', 'dressy', 'evening', 'dinner', 'party', 'night', 'date', 'blazer', 'suit', 'office', 'executive', 'work'},
+    'casual': {'casual', 'college', 'daily', 'relaxed', 'everyday', 'streetwear', 'comfortable', 'lazy', 'simple', 'tee', 'hoodie'},
+    'winter': {'winter', 'cold', 'warm', 'coat', 'outerwear', 'layered', 'wool', 'chilly', 'holiday', 'overcoat', 'insulated'},
+    'travel': {'travel', 'commute', 'airport', 'packed', 'lightweight', 'weekend', 'outdoor', 'vacation'},
+    'office': {'office', 'work', 'workwear', 'smart', 'professional', 'tailored', 'meeting', 'corporate', 'formal'},
+    'athleisure': {'athleisure', 'sporty', 'active', 'workout', 'running', 'training', 'comfort', 'gym', 'sneakers'},
+    'minimal': {'minimal', 'minimalist', 'clean', 'plain', 'simple', 'neutral', 'classic', 'monochrome'},
+    'summer': {'summer', 'light', 'bright', 'sunny', 'beach', 'tropical', 'linen', 'breathable'},
+    'night': {'night', 'evening', 'party', 'date', 'dinner', 'cocktail'},
 }
 
 VECTOR_SIZE = 64
@@ -36,6 +40,12 @@ INITIAL_PRODUCTS: List[Dict[str, Any]] = [
         'name': 'Oversized Graphic Hoodie',
         'brand': 'H&M',
         'category': 'Hoodies',
+        'subcategory': 'Graphic Hoodie',
+        'target_gender': 'Unisex',
+        'styles': ['Streetwear', 'Casual'],
+        'occasions': ['Casual Day'],
+        'materials': ['Cotton'],
+        'seasons': ['All Season', 'Winter', 'Fall/Autumn'],
         'description': 'A relaxed oversized hoodie in black with graphic detailing for a casual streetwear look.',
         'price': '₹1,299',
         'original_price': '₹2,499',
@@ -43,6 +53,7 @@ INITIAL_PRODUCTS: List[Dict[str, Any]] = [
         'image': 'https://images.unsplash.com/photo-1556821840-3a63f95609a7?w=400&q=80',
         'store': 'H&M',
         'colors': ['Black', 'Gray', 'Cream'],
+        'normalized_colors': ['Black', 'Gray', 'Cream'],
         'sizes': ['S', 'M', 'L', 'XL'],
     },
     {
@@ -50,6 +61,12 @@ INITIAL_PRODUCTS: List[Dict[str, Any]] = [
         'name': 'Classic White Sneakers',
         'brand': 'Nike',
         'category': 'Sneakers',
+        'subcategory': 'Running Sneakers',
+        'target_gender': 'Unisex',
+        'styles': ['Athleisure', 'Minimalist', 'Casual'],
+        'occasions': ['Casual Day', 'Workout', 'Travel'],
+        'materials': ['Leather', 'Polyester'],
+        'seasons': ['All Season', 'Summer', 'Spring'],
         'description': 'Clean white sneakers designed for everyday comfort, casual dressing, and all-day wear.',
         'price': '₹4,999',
         'original_price': '₹6,999',
@@ -57,6 +74,7 @@ INITIAL_PRODUCTS: List[Dict[str, Any]] = [
         'image': 'https://images.unsplash.com/photo-1542291026-7eec264c27ff?w=400&q=80',
         'store': 'Nike',
         'colors': ['White', 'Off White', 'Black'],
+        'normalized_colors': ['White', 'Off White', 'Black'],
         'sizes': ['6', '7', '8', '9', '10'],
     },
     {
@@ -64,6 +82,12 @@ INITIAL_PRODUCTS: List[Dict[str, Any]] = [
         'name': 'Korean Streetwear Jacket',
         'brand': 'Zara',
         'category': 'Jackets',
+        'subcategory': 'Bomber Jacket',
+        'target_gender': 'Unisex',
+        'styles': ['Streetwear', 'Casual'],
+        'occasions': ['Casual Day', 'Travel', 'Party'],
+        'materials': ['Cotton', 'Polyester'],
+        'seasons': ['All Season', 'Fall/Autumn', 'Winter'],
         'description': 'A lightweight streetwear jacket with a sharp silhouette and versatile layering for cool weather.',
         'price': '₹3,499',
         'original_price': '₹5,999',
@@ -71,6 +95,7 @@ INITIAL_PRODUCTS: List[Dict[str, Any]] = [
         'image': 'https://images.unsplash.com/photo-1551028719-00167b16eac5?w=400&q=80',
         'store': 'Zara',
         'colors': ['Olive', 'Black', 'Stone'],
+        'normalized_colors': ['Olive', 'Black', 'Stone'],
         'sizes': ['S', 'M', 'L', 'XL'],
     },
     {
@@ -78,6 +103,12 @@ INITIAL_PRODUCTS: List[Dict[str, Any]] = [
         'name': 'Minimalist Watch',
         'brand': 'Daniel Wellington',
         'category': 'Accessories',
+        'subcategory': 'Analog Chronograph',
+        'target_gender': 'Unisex',
+        'styles': ['Minimalist', 'Formal', 'Vintage'],
+        'occasions': ['Office', 'Date Night', 'Party', 'Wedding'],
+        'materials': ['Stainless Steel', 'Leather'],
+        'seasons': ['All Season'],
         'description': 'An elegant minimalist watch with a refined silver finish perfect for daily styling.',
         'price': '₹8,999',
         'original_price': '₹12,999',
@@ -85,13 +116,20 @@ INITIAL_PRODUCTS: List[Dict[str, Any]] = [
         'image': 'https://images.unsplash.com/photo-1524592094714-0f0654e20314?w=400&q=80',
         'store': 'Daniel Wellington',
         'colors': ['Silver', 'Black', 'Gold'],
-        'sizes': ['One Size'],
+        'normalized_colors': ['Silver', 'Black', 'Gold'],
+        'sizes': ['ONE SIZE'],
     },
     {
         'id': 5,
         'name': 'Slim Fit Chinos',
         'brand': 'Uniqlo',
         'category': 'Pants',
+        'subcategory': 'Chino Trousers',
+        'target_gender': 'Men',
+        'styles': ['Minimalist', 'Formal', 'Casual'],
+        'occasions': ['Office', 'Casual Day', 'Travel'],
+        'materials': ['Cotton', 'Polyester'],
+        'seasons': ['All Season', 'Summer', 'Spring'],
         'description': 'Tailored slim-fit chinos in a classic neutral tone made for smart casual styling.',
         'price': '₹1,999',
         'original_price': '₹3,499',
@@ -99,6 +137,7 @@ INITIAL_PRODUCTS: List[Dict[str, Any]] = [
         'image': 'https://images.unsplash.com/photo-1473966968600-fa801b869a1a?w=400&q=80',
         'store': 'Uniqlo',
         'colors': ['Sand', 'Navy', 'Charcoal'],
+        'normalized_colors': ['Stone', 'Navy', 'Charcoal'],
         'sizes': ['S', 'M', 'L', 'XL'],
     },
     {
@@ -106,6 +145,12 @@ INITIAL_PRODUCTS: List[Dict[str, Any]] = [
         'name': 'Leather Crossbody Bag',
         'brand': 'Fossil',
         'category': 'Bags',
+        'subcategory': 'Leather Crossbody Bag',
+        'target_gender': 'Women',
+        'styles': ['Vintage', 'Minimalist', 'Casual'],
+        'occasions': ['Casual Day', 'Travel', 'Date Night', 'Office'],
+        'materials': ['Leather'],
+        'seasons': ['All Season'],
         'description': 'A compact leather crossbody bag with a premium finish and everyday utility.',
         'price': '₹5,499',
         'original_price': '₹7,999',
@@ -113,13 +158,20 @@ INITIAL_PRODUCTS: List[Dict[str, Any]] = [
         'image': 'https://images.unsplash.com/photo-1548036328-c9fa89d128fa?w=400&q=80',
         'store': 'Fossil',
         'colors': ['Tan', 'Black', 'Espresso'],
-        'sizes': ['One Size'],
+        'normalized_colors': ['Tan', 'Black', 'Espresso'],
+        'sizes': ['ONE SIZE'],
     },
     {
         'id': 7,
         'name': 'Everyday Cotton Tee',
         'brand': 'H&M',
         'category': 'Tops',
+        'subcategory': 'Crewneck Tee',
+        'target_gender': 'Unisex',
+        'styles': ['Casual', 'Minimalist'],
+        'occasions': ['Casual Day', 'Travel'],
+        'materials': ['Cotton'],
+        'seasons': ['All Season', 'Summer', 'Spring'],
         'description': 'A soft casual cotton top in a relaxed fit for everyday outfits and layered styling.',
         'price': '₹799',
         'original_price': '₹1,299',
@@ -127,6 +179,7 @@ INITIAL_PRODUCTS: List[Dict[str, Any]] = [
         'image': 'https://images.unsplash.com/photo-1521572267360-ee0c2909d518?w=400&q=80',
         'store': 'H&M',
         'colors': ['Cream', 'Black', 'Navy'],
+        'normalized_colors': ['Cream', 'Black', 'Navy'],
         'sizes': ['S', 'M', 'L', 'XL'],
     },
     {
@@ -134,6 +187,12 @@ INITIAL_PRODUCTS: List[Dict[str, Any]] = [
         'name': 'Silk Slip Dress',
         'brand': 'Zara',
         'category': 'Dresses',
+        'subcategory': 'Silk Slip Dress',
+        'target_gender': 'Women',
+        'styles': ['Formal', 'Bohemian'],
+        'occasions': ['Date Night', 'Party', 'Wedding'],
+        'materials': ['Silk', 'Satin'],
+        'seasons': ['Summer', 'All Season'],
         'description': 'A black satin slip dress with a flattering silhouette for evening wear and special occasions.',
         'price': '₹3,999',
         'original_price': '₹5,499',
@@ -141,6 +200,7 @@ INITIAL_PRODUCTS: List[Dict[str, Any]] = [
         'image': 'https://images.unsplash.com/photo-1496747611176-843222e1e57c?w=400&q=80',
         'store': 'Zara',
         'colors': ['Black', 'Wine', 'Champagne'],
+        'normalized_colors': ['Black', 'Wine', 'Gold'],
         'sizes': ['S', 'M', 'L'],
     },
     {
@@ -148,6 +208,12 @@ INITIAL_PRODUCTS: List[Dict[str, Any]] = [
         'name': 'Winter Wool Coat',
         'brand': 'Uniqlo',
         'category': 'Outerwear',
+        'subcategory': 'Tailored Overcoat',
+        'target_gender': 'Unisex',
+        'styles': ['Winter', 'Formal', 'Minimalist'],
+        'occasions': ['Office', 'Casual Day', 'Travel'],
+        'materials': ['Wool'],
+        'seasons': ['Winter', 'Fall/Autumn'],
         'description': 'A warm winter coat with layered insulation and a classic silhouette for chilly weather.',
         'price': '₹6,499',
         'original_price': '₹9,999',
@@ -155,6 +221,7 @@ INITIAL_PRODUCTS: List[Dict[str, Any]] = [
         'image': 'https://images.unsplash.com/photo-1529139574466-a303027c1d8b?w=400&q=80',
         'store': 'Uniqlo',
         'colors': ['Charcoal', 'Camel', 'Black'],
+        'normalized_colors': ['Charcoal', 'Camel', 'Black'],
         'sizes': ['S', 'M', 'L', 'XL'],
     },
     {
@@ -162,6 +229,12 @@ INITIAL_PRODUCTS: List[Dict[str, Any]] = [
         'name': 'Crimson Red Blazer',
         'brand': 'Mango',
         'category': 'Blazers',
+        'subcategory': 'Structured Blazer',
+        'target_gender': 'Women',
+        'styles': ['Formal', 'Minimalist'],
+        'occasions': ['Office', 'Party', 'Date Night'],
+        'materials': ['Cotton', 'Polyester'],
+        'seasons': ['All Season', 'Fall/Autumn', 'Spring'],
         'description': 'A bold red blazer offering a polished statement look for work and evening dressing.',
         'price': '₹4,299',
         'original_price': '₹6,499',
@@ -169,9 +242,11 @@ INITIAL_PRODUCTS: List[Dict[str, Any]] = [
         'image': 'https://images.unsplash.com/photo-1529139574466-a303027c1d8b?w=400&q=80',
         'store': 'Mango',
         'colors': ['Red', 'Black', 'Stone'],
+        'normalized_colors': ['Red', 'Black', 'Stone'],
         'sizes': ['S', 'M', 'L'],
     },
 ]
+
 
 
 def normalize_tokens(value: str) -> List[str]:
@@ -184,8 +259,14 @@ def product_text_for_embedding(product: Product) -> str:
             product.name or '',
             product.brand or '',
             product.category or '',
+            product.subcategory or '',
+            product.target_gender or '',
             product.description or '',
-            *(product.colors or []),
+            *(product.styles or []),
+            *(product.occasions or []),
+            *(product.materials or []),
+            *(product.seasons or []),
+            *(product.normalized_colors or product.colors or []),
             *(product.sizes or []),
         ]
     )
@@ -201,7 +282,7 @@ def build_semantic_vector(text: str) -> List[float]:
     for token in tokens:
         expanded_tokens.add(token)
         for canonical, variants in SEMANTIC_SYNONYMS.items():
-            if token in variants:
+            if token in variants or token == canonical:
                 expanded_tokens.add(canonical)
                 expanded_tokens.update(variants)
 
@@ -323,6 +404,9 @@ def search_products(db: Session, query: str) -> List[Product]:
         clauses.append(Product.name.ilike(f'%{token}%'))
         clauses.append(Product.category.ilike(f'%{token}%'))
         clauses.append(Product.description.ilike(f'%{token}%'))
+        clauses.append(Product.brand.ilike(f'%{token}%'))
+        clauses.append(Product.subcategory.ilike(f'%{token}%'))
+        clauses.append(Product.target_gender.ilike(f'%{token}%'))
 
     return db.query(Product).filter(or_(*clauses)).order_by(Product.id.asc()).all()
 
@@ -333,7 +417,7 @@ def get_product_by_id(db: Session, product_id: int) -> Optional[Product]:
 
 
 def seed_initial_products(db: Session) -> None:
-    """Seed initial StyleVerse products if not present in the database."""
+    """Seed initial StyleVerse products and backfill normalized metadata."""
     ensure_product_search_columns(db)
 
     for product_data in INITIAL_PRODUCTS:
@@ -344,6 +428,12 @@ def seed_initial_products(db: Session) -> None:
                 name=product_data['name'],
                 brand=product_data['brand'],
                 category=product_data['category'],
+                subcategory=product_data.get('subcategory'),
+                target_gender=product_data.get('target_gender', 'Unisex'),
+                styles=product_data.get('styles', []),
+                occasions=product_data.get('occasions', []),
+                materials=product_data.get('materials', []),
+                seasons=product_data.get('seasons', []),
                 description=product_data.get('description', ''),
                 price=product_data['price'],
                 original_price=product_data['original_price'],
@@ -351,13 +441,64 @@ def seed_initial_products(db: Session) -> None:
                 image=product_data['image'],
                 store=product_data['store'],
                 colors=product_data['colors'],
+                normalized_colors=product_data.get('normalized_colors', product_data['colors']),
                 sizes=product_data['sizes'],
             )
             db.add(product)
         else:
-            for field_name in ['name', 'brand', 'category', 'description', 'price', 'original_price', 'rating', 'image', 'store', 'colors', 'sizes']:
-                value = product_data.get(field_name)
-                if value is not None and getattr(existing, field_name, None) != value:
-                    setattr(existing, field_name, value)
+            for field_name in [
+                'name', 'brand', 'category', 'subcategory', 'target_gender',
+                'styles', 'occasions', 'materials', 'seasons', 'description',
+                'price', 'original_price', 'rating', 'image', 'store',
+                'colors', 'normalized_colors', 'sizes',
+            ]:
+                if field_name in product_data:
+                    setattr(existing, field_name, product_data[field_name])
+
+    # Ensure all products in the database have normalized metadata populated
+    for prod in db.query(Product).all():
+        if prod.styles is None or prod.occasions is None or prod.normalized_colors is None or prod.subcategory is None:
+            normalized = normalize_product_metadata({
+                'name': prod.name,
+                'brand': prod.brand,
+                'category': prod.category,
+                'subcategory': prod.subcategory,
+                'target_gender': prod.target_gender,
+                'description': prod.description,
+                'colors': prod.colors,
+                'styles': prod.styles,
+                'occasions': prod.occasions,
+                'materials': prod.materials,
+                'seasons': prod.seasons,
+                'sizes': prod.sizes,
+            })
+            if not prod.subcategory and normalized.get('subcategory'):
+                prod.subcategory = normalized['subcategory']
+            if not prod.target_gender and normalized.get('target_gender'):
+                prod.target_gender = normalized['target_gender']
+            if not prod.styles and normalized.get('styles'):
+                prod.styles = normalized['styles']
+            if not prod.occasions and normalized.get('occasions'):
+                prod.occasions = normalized['occasions']
+            if not prod.materials and normalized.get('materials'):
+                prod.materials = normalized['materials']
+            if not prod.seasons and normalized.get('seasons'):
+                prod.seasons = normalized['seasons']
+            if not prod.normalized_colors and normalized.get('normalized_colors'):
+                prod.normalized_colors = normalized['normalized_colors']
+
+        if prod.styles is None:
+            prod.styles = []
+        if prod.occasions is None:
+            prod.occasions = []
+        if prod.materials is None:
+            prod.materials = []
+        if prod.seasons is None:
+            prod.seasons = []
+        if prod.normalized_colors is None:
+            prod.normalized_colors = []
+
     db.commit()
     generate_and_store_embeddings(db)
+
+

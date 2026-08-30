@@ -44,6 +44,13 @@ class CatalogProductItem(BaseModel):
     name: str
     brand: str
     category: Optional[str] = None
+    subcategory: Optional[str] = None
+    target_gender: Optional[str] = 'Unisex'
+    styles: List[str] = []
+    occasions: List[str] = []
+    materials: List[str] = []
+    seasons: List[str] = []
+    normalized_colors: List[str] = []
     image: Optional[str] = None
     price: Optional[str] = None
     rating: float = 0.0
@@ -62,6 +69,7 @@ class CatalogProductItem(BaseModel):
     issues: List[str] = []
     warnings: List[str] = []
     duplicate_of: List[int] = []
+
 
 
 class CatalogProductDetailResponse(CatalogProductItem):

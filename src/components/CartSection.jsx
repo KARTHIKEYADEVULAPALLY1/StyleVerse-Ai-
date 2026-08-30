@@ -5,6 +5,7 @@ import { useNavigate } from 'react-router-dom'
 import { useCart } from '../context/CartContext'
 import Reveal from './ui/Reveal'
 import MagneticButton from './ui/MagneticButton'
+import ProductImage from './ui/ProductImage'
 
 export default function CartSection() {
   const navigate = useNavigate()
@@ -158,11 +159,7 @@ export default function CartSection() {
                     <div className="flex flex-col sm:flex-row gap-4">
                       {/* Image */}
                       <div className="relative w-full sm:w-32 h-44 sm:h-32 overflow-hidden rounded-3xl bg-white/5 shrink-0">
-                        <img
-                          src={item.product.image}
-                          alt={item.product.name}
-                          className="w-full h-full object-cover"
-                        />
+                        <ProductImage src={item.product.image} alt={item.product.name} containerClassName="w-full h-full" className="w-full h-full object-cover" />
                       </div>
 
                       {/* Details */}

@@ -30,6 +30,7 @@ from app.models.merchant import Merchant
 from app.models.product import Product
 from app.models.product_offer import ProductOffer
 from app.schemas.external_product import ExternalProduct
+from app.services.media_storage import sanitize_image_url
 from app.services.normalization_service import (
     format_display_price,
     normalize_availability,
@@ -108,6 +109,35 @@ def _find_offer(
     )
 
 
+def _resolve_image_url(external: ExternalProduct) -> str:
+    """Pick a safe image URL from an external product.
+
+    - Accepts http(s) URLs and root-relative paths.
+    - Falls back to :data:`PLACEHOLDER_IMAGE` for missing or unsafe values
+      so we never persist ``javascript:`` / ``data:text/html`` / ``file://``
+      payloads into the catalog.
+    """
+    sanitized = sanitize_image_url(external.image_url)
+    if sanitized:
+        return sanitized
+    return PLACEHOLDER_IMAGE
+
+
+def _has_explicit_unsafe_image(external: ExternalProduct) -> bool:
+    """Return True when the merchant supplied a clearly unsafe image URL.
+
+    A product with no image is fine - it will pick up
+    :data:`PLACEHOLDER_IMAGE` via :func:`_resolve_image_url`. A product that
+    *did* send a value but that value failed sanitization is a stronger
+    signal: it tells the ingestion pipeline to bump the ``rejected_images``
+    counter and emit an error row so the operator can investigate the
+    connector.
+    """
+    if not external.image_url or not isinstance(external.image_url, str):
+        return False
+    return not sanitize_image_url(external.image_url)
+
+
 def _upsert_offer(
     db: Session,
     product: Product,
@@ -119,6 +149,7 @@ def _upsert_offer(
     availability = normalize_availability(external.availability)
     rating = normalize_rating(external.rating)
     now = datetime.now(timezone.utc)
+    safe_image = _resolve_image_url(external)
 
     offer = _find_offer(db, product.id, merchant, external)
     if offer is None:
@@ -132,7 +163,7 @@ def _upsert_offer(
             merchant_id=merchant.id,
             merchant_product_id=external.external_product_id,
             product_url=external.product_url,
-            image_url=external.image_url,
+            image_url=safe_image,
             last_updated=now,
         )
         db.add(offer)
@@ -145,7 +176,10 @@ def _upsert_offer(
         offer.merchant_id = merchant.id
         offer.merchant_product_id = external.external_product_id
         offer.product_url = external.product_url or offer.product_url
-        offer.image_url = external.image_url or offer.image_url
+        # Only overwrite an existing image with a safe value; an unsafe or
+        # missing merchant image must not clobber a known-good one.
+        if sanitize_image_url(external.image_url) is not None:
+            offer.image_url = safe_image
         offer.last_updated = now
         stats['offers_updated'] += 1
 
@@ -166,7 +200,7 @@ def _create_product(db: Session, merchant: Merchant, external: ExternalProduct) 
         price=format_display_price(float(external.price), currency),
         original_price=None,
         rating=normalize_rating(external.rating),
-        image=external.image_url or PLACEHOLDER_IMAGE,
+        image=_resolve_image_url(external),
         store=merchant.name,
         colors=colors,
         sizes=sizes,
@@ -197,12 +231,23 @@ def ingest_external_products(
         'products_matched': 0,
         'offers_created': 0,
         'offers_updated': 0,
+        'rejected_images': 0,
         'skipped': 0,
     }
     errors: List[Dict[str, str]] = []
 
     for external in external_products:
         try:
+            if _has_explicit_unsafe_image(external):
+                stats['rejected_images'] += 1
+                errors.append(
+                    {
+                        'external_product_id': external.external_product_id,
+                        'error': f'unsafe image URL: {external.image_url!r}',
+                    }
+                )
+                continue
+
             match = find_matching_product(db, external)
             if match is None:
                 product = _create_product(db, merchant, external)
@@ -264,6 +309,7 @@ def run_mock_ingestion(
         'products_matched': sum(r['products_matched'] for r in results),
         'offers_created': sum(r['offers_created'] for r in results),
         'offers_updated': sum(r['offers_updated'] for r in results),
+        'rejected_images': sum(r['rejected_images'] for r in results),
         'skipped': sum(r['skipped'] for r in results),
     }
     return {

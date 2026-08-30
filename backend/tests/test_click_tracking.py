@@ -22,7 +22,12 @@ def _admin_key(monkeypatch):
 
 def seeded_offer(db, store='Ajio', **overrides):
     """First seeded offer of the given store (has a search-URL fallback)."""
-    offer = db.query(ProductOffer).filter(ProductOffer.store == store).first()
+    # Keep the fixtures deterministic and ensure analytics tests exercise
+    # multiple products rather than four store offers for product 1.
+    preferred_product = {'Ajio': 1, 'Myntra': 2, 'Amazon': 3, 'Flipkart': 4}.get(store)
+    query = db.query(ProductOffer).filter(ProductOffer.store == store)
+    offer = query.filter(ProductOffer.product_id == preferred_product).first() if preferred_product else None
+    offer = offer or query.first()
     assert offer is not None, f'expected a seeded {store} offer'
     return offer
 

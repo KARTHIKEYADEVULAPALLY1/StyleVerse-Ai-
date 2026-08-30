@@ -4,6 +4,8 @@ from __future__ import annotations
 
 import json
 
+import pytest
+
 from app.connectors.mock_connector import MockFileConnector
 from app.models.merchant import Merchant
 from app.models.product import Product
@@ -241,3 +243,110 @@ def test_mock_connector_behaves_like_real_connector(seeded_db):
     result = ingest_external_products(seeded_db, externals, merchant)
     assert result['received'] == len(externals)
     assert result['offers_created'] + result['offers_updated'] == len(externals)
+
+
+# --- Image URL validation -----------------------------------------------------
+
+
+def _make_product(
+    external_product_id: str,
+    image_url: str | None,
+    name: str = "Test Product",
+) -> ExternalProduct:
+    return ExternalProduct.model_validate({
+        "merchant": "testimg",
+        "external_product_id": external_product_id,
+        "name": name,
+        "brand": "TestBrand",
+        "category": "Tops",
+        "price": 9.99,
+        "image_url": image_url,
+    })
+
+
+@pytest.mark.parametrize(
+    "url",
+    [
+        "https://cdn.example.com/product.jpg",
+        "http://cdn.example.com/product.jpg",
+        "/media/uploads/shoe.png",
+        None,  # no image at all
+        "",  # empty string
+    ],
+)
+def test_safe_image_urls_accepted_and_stored(seeded_db, url):
+    merchant = get_or_create_merchant(seeded_db, "testimg", name="TestImg")
+    product = _make_product("SAFE-1", url)
+    result = ingest_external_products(seeded_db, [product], merchant)
+    assert result["rejected_images"] == 0
+    assert result["skipped"] == 0
+    assert result["offers_created"] == 1
+
+    offer = (
+        seeded_db.query(ProductOffer)
+        .filter(ProductOffer.merchant_product_id == "SAFE-1")
+        .first()
+    )
+    assert offer is not None
+    if url and (url.startswith("http") or url.startswith("/")):
+        # Absolute http(s) URLs and root-relative paths are stored verbatim.
+        assert offer.image_url == url
+    else:
+        # Missing/empty images fall back to the placeholder.
+        from app.services.ingestion_service import PLACEHOLDER_IMAGE
+
+        assert offer.image_url == PLACEHOLDER_IMAGE
+
+
+@pytest.mark.parametrize(
+    "url",
+    [
+        "javascript:alert(1)",
+        "data:text/html,<script>alert(1)</script>",
+        "file:///etc/passwd",
+        "vbscript:msgbox(1)",
+        "ftp://evil.com/img.jpg",
+    ],
+)
+def test_unsafe_image_urls_rejected_and_counted(seeded_db, url):
+    merchant = get_or_create_merchant(seeded_db, "testimg", name="TestImg")
+    product = _make_product("UNSAFE-1", url)
+    result = ingest_external_products(seeded_db, [product], merchant)
+    assert result["rejected_images"] == 1
+    assert result["skipped"] == 0
+    assert result["offers_created"] == 0
+    assert result["errors"][0]["external_product_id"] == "UNSAFE-1"
+    assert "unsafe image URL" in result["errors"][0]["error"]
+
+
+def test_batch_with_mixed_images_processes_safe_ones(seeded_db):
+    merchant = get_or_create_merchant(seeded_db, "testimg", name="TestImg")
+    products = [
+        _make_product("SAFE-1", "https://cdn.example.com/safe.jpg", name="Safe Product A"),
+        _make_product("UNSAFE-1", "javascript:alert(1)", name="Bad Product"),
+        _make_product("SAFE-2", None, name="Safe Product B"),
+    ]
+    result = ingest_external_products(seeded_db, products, merchant)
+    assert result["received"] == 3
+    assert result["rejected_images"] == 1
+    assert result["offers_created"] == 2
+    assert result["errors"][0]["external_product_id"] == "UNSAFE-1"
+
+
+def test_no_network_calls_during_validation(seeded_db, monkeypatch):
+    """Sanity check that image validation is a pure string operation."""
+    import socket
+
+    calls: list = []
+
+    def _track(*args, **kwargs):
+        calls.append((args, kwargs))
+        raise AssertionError("No network I/O during validation")
+
+    monkeypatch.setattr(socket, "gethostbyname", _track, raising=True)
+    monkeypatch.setattr(socket, "create_connection", _track, raising=True)
+    merchant = get_or_create_merchant(seeded_db, "testimg", name="TestImg")
+    product = _make_product("SAFE-1", "https://cdn.example.com/safe.jpg")
+    result = ingest_external_products(seeded_db, [product], merchant)
+    assert result["rejected_images"] == 0
+    assert calls == []

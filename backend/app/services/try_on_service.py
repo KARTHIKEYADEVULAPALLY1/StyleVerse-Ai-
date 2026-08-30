@@ -1,12 +1,14 @@
 from __future__ import annotations
 
 import os
-import uuid
 from pathlib import Path
 
 from fastapi import HTTPException, UploadFile, status
+from app.services.media_processing import optimize_image
+from app.services.media_storage import media_storage, safe_filename
 
 BASE_DIR = Path(__file__).resolve().parents[2]
+# Kept for processor compatibility. Local storage continues to use backend/uploads.
 UPLOADS_DIR = BASE_DIR / 'uploads'
 
 MAX_UPLOAD_SIZE_BYTES = int(os.getenv('TRYON_MAX_UPLOAD_SIZE_BYTES', str(5 * 1024 * 1024)))
@@ -49,6 +51,12 @@ def validate_declared_type(content_type: str | None, extension: str) -> None:
             status_code=status.HTTP_400_BAD_REQUEST,
             detail='Unsupported image format. Only JPG and PNG files are allowed.',
         )
+    expected_type = 'image/png' if extension == '.png' else 'image/jpeg'
+    if normalized_type and normalized_type != expected_type:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail='Image MIME type does not match its file signature.',
+        )
 
 
 async def save_try_on_upload(file: UploadFile) -> dict[str, str]:
@@ -89,13 +97,21 @@ async def save_try_on_upload(file: UploadFile) -> dict[str, str]:
 
     validate_declared_type(file.content_type, detected_extension)
 
-    upload_id = uuid.uuid4().hex
-    filename = f'{upload_id}{detected_extension}'
-    uploads_dir = ensure_uploads_directory()
-    destination = uploads_dir / filename
+    try:
+        file_bytes, detected_extension = optimize_image(file_bytes, detected_extension)
+    except ValueError:
+        # Signature and declared MIME have already been verified above. Some
+        # legitimate lightweight clients emit JPEGs that Pillow cannot fully
+        # decode; retain the validated original rather than breaking existing
+        # Try-On compatibility. Decodable uploads are still optimized.
+        pass
+    filename = safe_filename(detected_extension)
+    upload_id = filename.rsplit('.', 1)[0]
+    try:
+        media_storage.save(filename, file_bytes)
+    except (ValueError, OSError) as exc:
+        raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail='Unable to store uploaded image.') from exc
 
-    with destination.open('wb') as output_file:
-        output_file.write(file_bytes)
 
     return {
         'upload_id': upload_id,

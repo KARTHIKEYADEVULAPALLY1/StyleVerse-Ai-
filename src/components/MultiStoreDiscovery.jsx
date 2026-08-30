@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useState, useCallback } from 'react'
 import { motion } from 'framer-motion'
 import {
   ArrowRight,
@@ -7,25 +7,57 @@ import {
   Store,
   Layers,
   Star,
+  Sparkles,
+  Tag,
+  Palette,
+  Shirt,
+  X,
+  Loader2,
+  ChevronDown,
 } from 'lucide-react'
 import { useNavigate } from 'react-router-dom'
 import Reveal from './ui/Reveal'
 import ProductSkeleton from './ui/ProductSkeleton'
 import { EmptyState, ErrorState } from './ui/ProductState'
 import { fetchDiscovery } from '../services/productService'
+import ProductImage from './ui/ProductImage'
+
+const PAGE_SIZE = 20
 
 const SORT_OPTIONS = [
   { value: 'relevance', label: 'Relevance' },
-  { value: 'price_asc', label: 'Lowest Price' },
-  { value: 'rating_desc', label: 'Highest Rating' },
+  { value: 'price_low', label: 'Price: Low → High' },
+  { value: 'price_high', label: 'Price: High → Low' },
+  { value: 'rating', label: 'Highest Rating' },
+  { value: 'newest', label: 'Newest' },
 ]
 
 const EXAMPLE_QUERIES = [
   'black formal dress',
+  'office outfit',
   'casual outfit under ₹3000',
   'party wear',
   'minimalist jacket',
 ]
+
+const COLOR_SWATCH_MAP = {
+  Black: '#111827',
+  White: '#ffffff',
+  'Off White': '#f9f9f6',
+  Navy: '#1e2a4a',
+  Gray: '#6b7280',
+  Charcoal: '#374151',
+  Cream: '#f5f0e6',
+  Olive: '#6a7a45',
+  Stone: '#a8a29e',
+  Tan: '#d2a679',
+  Camel: '#c19a6b',
+  Silver: '#c0c0c0',
+  Gold: '#d4af37',
+  Red: '#dc2626',
+  Wine: '#722f37',
+  Espresso: '#5d4037',
+}
 
 function formatPrice(amount, currency = 'INR') {
   if (amount == null) return '—'
@@ -39,11 +71,6 @@ function formatPrice(amount, currency = 'INR') {
   }).format(amount)
 }
 
-/**
- * "casual outfit under ₹3000" -> { text: 'casual outfit', maxPrice: 3000 }.
- * Budget phrases are turned into the API's max_price filter so semantic
- * search only receives the fashion intent, not the price clause.
- */
 function parseBudgetFromQuery(rawQuery) {
   const query = String(rawQuery || '')
   const match = query.match(/\bunder\s*(?:₹|rs\.?|inr)?\s*([\d,]+)\b/i)
@@ -55,8 +82,6 @@ function parseBudgetFromQuery(rawQuery) {
 
 function DiscoveryCard({ product, index }) {
   const navigate = useNavigate()
-  const [imageLoaded, setImageLoaded] = useState(false)
-  const [imageError, setImageError] = useState(false)
 
   if (!product) return null
 
@@ -67,15 +92,18 @@ function DiscoveryCard({ product, index }) {
     navigate(`/product/${product.id}`)
   }
 
+  const primaryStyle = product.styles?.[0]
+  const primaryOccasion = product.occasions?.[0]
+
   return (
     <motion.div
-      initial={{ opacity: 0, y: 30 }}
+      initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
-      transition={{ delay: Math.min(index * 0.06, 0.4), duration: 0.5 }}
+      transition={{ delay: Math.min((index % PAGE_SIZE) * 0.04, 0.3), duration: 0.4 }}
       className="h-full"
     >
       <div
-        className="group relative cursor-pointer rounded-4xl overflow-hidden glass dark:glass h-full flex flex-col transition-all duration-500 hover:shadow-glow hover:-translate-y-1.5"
+        className="group relative cursor-pointer rounded-4xl overflow-hidden glass dark:glass h-full flex flex-col transition-all duration-500 hover:shadow-glow hover:-translate-y-1.5 border border-white/10"
         onClick={openComparison}
         role="button"
         tabIndex={0}
@@ -89,22 +117,22 @@ function DiscoveryCard({ product, index }) {
       >
         {/* ===== Image ===== */}
         <div className="relative aspect-[4/5] overflow-hidden bg-gray-100 dark:bg-gray-900">
-          {!imageError && product.image ? (
-            <img
-              src={product.image}
-              alt={product.name}
-              loading="lazy"
-              onLoad={() => setImageLoaded(true)}
-              onError={() => setImageError(true)}
-              className={`w-full h-full object-cover transition-all duration-700 group-hover:scale-105 ${
-                imageLoaded ? 'opacity-100' : 'opacity-0'
-              }`}
-            />
-          ) : (
-            <div className="absolute inset-0 flex items-center justify-center bg-gradient-to-br from-primary/10 to-secondary/10">
-              <Store className="w-10 h-10 text-primary/40" />
-            </div>
-          )}
+          <ProductImage src={product.image} alt={product.name} containerClassName="absolute inset-0" className="w-full h-full object-cover group-hover:scale-105" />
+
+          {/* Style & Occasion Badges */}
+          <div className="absolute top-3 left-3 flex flex-wrap gap-1.5 max-w-[80%]">
+            {primaryStyle && (
+              <span className="px-2.5 py-0.5 rounded-full bg-black/60 backdrop-blur-md text-white text-[10px] font-semibold border border-white/20">
+                {primaryStyle}
+              </span>
+            )}
+            {primaryOccasion && (
+              <span className="px-2.5 py-0.5 rounded-full bg-primary/70 backdrop-blur-md text-white text-[10px] font-semibold">
+                {primaryOccasion}
+              </span>
+            )}
+          </div>
+
           {offerCount > 0 && (
             <div className="absolute bottom-3 left-3 flex items-center gap-1 px-2.5 py-1 rounded-full bg-black/55 backdrop-blur-md text-white text-[11px] font-semibold">
               <Layers className="w-3 h-3" />
@@ -126,17 +154,20 @@ function DiscoveryCard({ product, index }) {
           </div>
 
           <h3 className="font-semibold text-sm sm:text-base mb-1 line-clamp-1">{product.name}</h3>
-          {product.category && (
-            <p className="text-[11px] sm:text-xs text-gray-500 dark:text-gray-400 mb-2 uppercase tracking-wide">
-              {product.category}
-            </p>
-          )}
+          
+          <div className="flex items-center gap-2 mb-2">
+            {product.category && (
+              <span className="text-[11px] text-gray-400 uppercase tracking-wide">
+                {product.category}
+              </span>
+            )}
+          </div>
 
           {/* Best available multi-store price */}
           <div className="mt-auto pt-2 mb-3">
             {best ? (
               <>
-                <p className="text-[10px] sm:text-[11px] uppercase tracking-[0.15em] text-gray-500 dark:text-gray-400 mb-0.5">
+                <p className="text-[10px] sm:text-[11px] uppercase tracking-[0.15em] text-gray-400 mb-0.5">
                   Best price at {best.merchant_name}
                 </p>
                 <span className="font-display text-xl sm:text-2xl font-bold gradient-text">
@@ -175,15 +206,27 @@ function DiscoveryCard({ product, index }) {
 export default function MultiStoreDiscovery() {
   const [query, setQuery] = useState('')
   const [debouncedQuery, setDebouncedQuery] = useState('')
+  const [selectedCategory, setSelectedCategory] = useState('')
+  const [selectedStyle, setSelectedStyle] = useState('')
+  const [selectedOccasion, setSelectedOccasion] = useState('')
+  const [selectedColor, setSelectedColor] = useState('')
   const [merchant, setMerchant] = useState('')
   const [sort, setSort] = useState('relevance')
-  const [data, setData] = useState(null)
-  const [loading, setLoading] = useState(true)
+
+  // Pagination state
+  const [page, setPage] = useState(1)
+  const [products, setProducts] = useState([])
+  const [total, setTotal] = useState(0)
+  const [hasNext, setHasNext] = useState(false)
+  const [availableFilters, setAvailableFilters] = useState({})
+  const [merchants, setMerchants] = useState([])
+
+  const [loadingInitial, setLoadingInitial] = useState(true)
+  const [loadingMore, setLoadingMore] = useState(false)
   const [error, setError] = useState(null)
-  // Bumped by "Try Again" to force a reload of the current query.
   const [reloadKey, setReloadKey] = useState(0)
 
-  // Debounce typing so we do not hammer the discovery API on every keystroke.
+  // Debounce typing for search
   useEffect(() => {
     const timer = setTimeout(() => {
       setDebouncedQuery(query.trim())
@@ -191,24 +234,63 @@ export default function MultiStoreDiscovery() {
     return () => clearTimeout(timer)
   }, [query])
 
+  // Reset page to 1 whenever search, filters, or sort change
+  useEffect(() => {
+    setPage(1)
+  }, [debouncedQuery, selectedCategory, selectedStyle, selectedOccasion, selectedColor, merchant, sort])
+
+  // Fetch discovery results
   useEffect(() => {
     let cancelled = false
 
-    async function loadDiscovery() {
+    async function loadData() {
+      const isFirstPage = page === 1
+      if (isFirstPage) {
+        setLoadingInitial(true)
+      } else {
+        setLoadingMore(true)
+      }
+      setError(null)
+
       try {
-        setLoading(true)
-        setError(null)
-        // Budget phrases ("under ₹3000") become a max_price filter; the rest
-        // of the text goes to semantic search as-is.
         const { text, maxPrice } = parseBudgetFromQuery(debouncedQuery)
         const result = await fetchDiscovery({
           q: text,
-          merchant,
+          category: selectedCategory || undefined,
+          style: selectedStyle || undefined,
+          occasion: selectedOccasion || undefined,
+          color: selectedColor || undefined,
+          merchant: merchant || undefined,
           sort,
+          page,
+          limit: PAGE_SIZE,
           ...(maxPrice != null ? { max_price: maxPrice } : {}),
         })
+
         if (!cancelled) {
-          setData(result)
+          const newItems = result.items || result.products || []
+          const resultTotal = Number(result.total || 0)
+          const resultHasNext = result.has_next ?? (page * PAGE_SIZE < resultTotal)
+
+          if (isFirstPage) {
+            setProducts(newItems)
+          } else {
+            // Append while avoiding duplicate IDs
+            setProducts((prev) => {
+              const existingIds = new Set(prev.map((p) => p.id))
+              const uniqueNew = newItems.filter((p) => !existingIds.has(p.id))
+              return [...prev, ...uniqueNew]
+            })
+          }
+
+          setTotal(resultTotal)
+          setHasNext(resultHasNext)
+          if (result.available_filters) {
+            setAvailableFilters(result.available_filters)
+          }
+          if (result.merchants) {
+            setMerchants(result.merchants)
+          }
         }
       } catch (err) {
         if (!cancelled) {
@@ -216,20 +298,38 @@ export default function MultiStoreDiscovery() {
         }
       } finally {
         if (!cancelled) {
-          setLoading(false)
+          setLoadingInitial(false)
+          setLoadingMore(false)
         }
       }
     }
 
-    loadDiscovery()
+    loadData()
     return () => {
       cancelled = true
     }
-  }, [debouncedQuery, merchant, sort, reloadKey])
+  }, [debouncedQuery, selectedCategory, selectedStyle, selectedOccasion, selectedColor, merchant, sort, page, reloadKey])
 
-  // Merchant chips only show stores that actually exist in the API response.
-  const merchants = useMemo(() => data?.merchants || [], [data])
-  const products = useMemo(() => data?.products || [], [data])
+  const categories = availableFilters.categories || ['Hoodies', 'Sneakers', 'Jackets', 'Accessories', 'Pants', 'Bags', 'Tops', 'Dresses', 'Outerwear', 'Blazers']
+  const styles = availableFilters.styles || ['Formal', 'Casual', 'Minimalist', 'Streetwear', 'Vintage', 'Bohemian', 'Athleisure', 'Winter', 'Summer']
+  const occasions = availableFilters.occasions || ['Office', 'Casual Day', 'Date Night', 'Party', 'Wedding', 'Workout', 'Travel']
+  const colors = availableFilters.colors || ['Black', 'White', 'Navy', 'Gray', 'Cream', 'Olive', 'Stone', 'Tan', 'Silver', 'Gold', 'Red', 'Wine']
+
+  const hasActiveFilters = selectedCategory || selectedStyle || selectedOccasion || selectedColor || merchant
+
+  const clearFilters = () => {
+    setSelectedCategory('')
+    setSelectedStyle('')
+    setSelectedOccasion('')
+    setSelectedColor('')
+    setMerchant('')
+  }
+
+  const handleLoadMore = () => {
+    if (!loadingMore && hasNext) {
+      setPage((prev) => prev + 1)
+    }
+  }
 
   return (
     <section className="min-h-screen relative overflow-hidden">
@@ -247,8 +347,8 @@ export default function MultiStoreDiscovery() {
           <h1 className="font-display text-4xl sm:text-5xl lg:text-6xl font-normal tracking-tight">
             Discover <span className="text-shine">Fashion Everywhere</span>
           </h1>
-          <p className="mt-4 text-lg text-gray-600 dark:text-gray-300 font-light tracking-wide max-w-2xl mx-auto">
-            Find products, compare stores, and discover the best available offer in one place.
+          <p className="mt-4 text-lg text-gray-300 font-light tracking-wide max-w-2xl mx-auto">
+            Find products, compare stores, and discover normalized catalog items with rich metadata filters.
           </p>
         </Reveal>
 
@@ -261,7 +361,7 @@ export default function MultiStoreDiscovery() {
                 type="text"
                 value={query}
                 onChange={(e) => setQuery(e.target.value)}
-                placeholder="Search black dresses, jackets, party wear…"
+                placeholder="Search black dresses, office outfit, party wear…"
                 aria-label="Search products across all stores"
                 className="w-full pl-14 pr-5 py-4 rounded-3xl glass dark:glass border border-white/10 focus:border-primary/50 outline-none text-base placeholder:text-gray-400 transition-colors"
               />
@@ -286,109 +386,253 @@ export default function MultiStoreDiscovery() {
           </div>
         </Reveal>
 
-        {/* ===== Merchant filters (only stores present in the response) ===== */}
-        <Reveal className="mb-4">
+        {/* ===== Metadata Filters ===== */}
+        <Reveal className="mb-8 space-y-4">
+          {/* Style Chips */}
           <div className="flex flex-wrap items-center justify-center gap-2">
+            <span className="text-xs font-semibold uppercase tracking-wider text-gray-400 mr-2 flex items-center gap-1">
+              <Shirt className="w-3.5 h-3.5 text-primary" /> Style:
+            </span>
             <button
               type="button"
-              onClick={() => setMerchant('')}
-              aria-pressed={merchant === ''}
-              className={`inline-flex items-center gap-1.5 px-4 py-2 rounded-full text-sm font-semibold border transition-colors min-h-[40px] ${
-                merchant === ''
-                  ? 'bg-primary text-white border-primary shadow-glow'
-                  : 'glass dark:glass border-white/10 hover:border-primary/40'
+              onClick={() => setSelectedStyle('')}
+              className={`px-3 py-1 rounded-full text-xs font-semibold border transition-colors ${
+                selectedStyle === '' ? 'bg-primary text-white border-primary' : 'glass border-white/10 hover:border-primary/30 text-gray-300'
               }`}
             >
-              <Store className="w-4 h-4" />
-              All Stores
+              All Styles
             </button>
-            {merchants.map((name) => (
+            {styles.map((st) => (
               <button
-                key={name}
+                key={st}
                 type="button"
-                onClick={() => setMerchant(name)}
-                aria-pressed={merchant === name}
-                className={`px-4 py-2 rounded-full text-sm font-medium border transition-colors min-h-[40px] ${
-                  merchant === name
+                onClick={() => setSelectedStyle(selectedStyle === st ? '' : st)}
+                className={`px-3 py-1 rounded-full text-xs font-semibold border transition-colors ${
+                  selectedStyle.toLowerCase() === st.toLowerCase()
                     ? 'bg-primary text-white border-primary shadow-glow'
-                    : 'glass dark:glass border-white/10 hover:border-primary/40'
+                    : 'glass border-white/10 hover:border-primary/30 text-gray-300'
                 }`}
               >
-                {name}
+                {st}
               </button>
             ))}
           </div>
-        </Reveal>
 
-        {/* ===== Sort controls ===== */}
-        <Reveal className="mb-10">
-          <div className="flex flex-wrap items-center justify-center sm:justify-between gap-3 max-w-5xl mx-auto">
-            <div
-              className="flex items-center gap-1 p-1 rounded-2xl glass dark:glass"
-              role="group"
-              aria-label="Sort results"
+          {/* Occasion Chips */}
+          <div className="flex flex-wrap items-center justify-center gap-2">
+            <span className="text-xs font-semibold uppercase tracking-wider text-gray-400 mr-2 flex items-center gap-1">
+              <Sparkles className="w-3.5 h-3.5 text-primary" /> Occasion:
+            </span>
+            <button
+              type="button"
+              onClick={() => setSelectedOccasion('')}
+              className={`px-3 py-1 rounded-full text-xs font-semibold border transition-colors ${
+                selectedOccasion === '' ? 'bg-primary text-white border-primary' : 'glass border-white/10 hover:border-primary/30 text-gray-300'
+              }`}
             >
-              {SORT_OPTIONS.map((option) => (
-                <button
-                  key={option.value}
-                  type="button"
-                  onClick={() => setSort(option.value)}
-                  aria-pressed={sort === option.value}
-                  className={`px-3.5 sm:px-4 py-2 rounded-xl text-xs sm:text-sm font-semibold transition-colors min-h-[36px] ${
-                    sort === option.value
-                      ? 'bg-gradient-to-r from-primary to-secondary text-white'
-                      : 'text-gray-600 dark:text-gray-300 hover:text-primary'
-                  }`}
-                >
-                  {option.label}
-                </button>
-              ))}
-            </div>
-            {!loading && !error && (
-              <p className="text-sm text-gray-500 dark:text-gray-400" aria-live="polite">
-                {products.length} {products.length === 1 ? 'product' : 'products'} found
-                {merchant ? ` at ${merchant}` : ' across all stores'}
-              </p>
+              All Occasions
+            </button>
+            {occasions.map((occ) => (
+              <button
+                key={occ}
+                type="button"
+                onClick={() => setSelectedOccasion(selectedOccasion === occ ? '' : occ)}
+                className={`px-3 py-1 rounded-full text-xs font-semibold border transition-colors ${
+                  selectedOccasion.toLowerCase() === occ.toLowerCase()
+                    ? 'bg-primary text-white border-primary shadow-glow'
+                    : 'glass border-white/10 hover:border-primary/30 text-gray-300'
+                }`}
+              >
+                {occ}
+              </button>
+            ))}
+          </div>
+
+          {/* Color Chips */}
+          <div className="flex flex-wrap items-center justify-center gap-2">
+            <span className="text-xs font-semibold uppercase tracking-wider text-gray-400 mr-2 flex items-center gap-1">
+              <Palette className="w-3.5 h-3.5 text-primary" /> Color:
+            </span>
+            <button
+              type="button"
+              onClick={() => setSelectedColor('')}
+              className={`px-3 py-1 rounded-full text-xs font-semibold border transition-colors ${
+                selectedColor === '' ? 'bg-primary text-white border-primary' : 'glass border-white/10 hover:border-primary/30 text-gray-300'
+              }`}
+            >
+              All Colors
+            </button>
+            {colors.map((col) => (
+              <button
+                key={col}
+                type="button"
+                onClick={() => setSelectedColor(selectedColor === col ? '' : col)}
+                className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold border transition-colors ${
+                  selectedColor.toLowerCase() === col.toLowerCase()
+                    ? 'bg-primary text-white border-primary shadow-glow'
+                    : 'glass border-white/10 hover:border-primary/30 text-gray-300'
+                }`}
+              >
+                <span
+                  className="w-2.5 h-2.5 rounded-full border border-white/30"
+                  style={{ backgroundColor: COLOR_SWATCH_MAP[col] || '#888' }}
+                />
+                {col}
+              </button>
+            ))}
+          </div>
+
+          {/* Categories & Clear */}
+          <div className="flex flex-wrap items-center justify-center gap-2 pt-2 border-t border-white/5">
+            <span className="text-xs font-semibold uppercase tracking-wider text-gray-400 mr-2 flex items-center gap-1">
+              <Tag className="w-3.5 h-3.5 text-primary" /> Category:
+            </span>
+            <button
+              type="button"
+              onClick={() => setSelectedCategory('')}
+              className={`px-3 py-1 rounded-full text-xs font-semibold border transition-colors ${
+                selectedCategory === '' ? 'bg-primary text-white border-primary' : 'glass border-white/10 hover:border-primary/30 text-gray-300'
+              }`}
+            >
+              All Categories
+            </button>
+            {categories.map((cat) => (
+              <button
+                key={cat}
+                type="button"
+                onClick={() => setSelectedCategory(selectedCategory === cat ? '' : cat)}
+                className={`px-3 py-1 rounded-full text-xs font-semibold border transition-colors ${
+                  selectedCategory.toLowerCase() === cat.toLowerCase()
+                    ? 'bg-primary text-white border-primary shadow-glow'
+                    : 'glass border-white/10 hover:border-primary/30 text-gray-300'
+                }`}
+              >
+                {cat}
+              </button>
+            ))}
+
+            {hasActiveFilters && (
+              <button
+                type="button"
+                onClick={clearFilters}
+                className="inline-flex items-center gap-1 px-3 py-1 rounded-full text-xs font-semibold bg-red-500/20 text-red-300 border border-red-500/30 hover:bg-red-500/30 ml-2"
+              >
+                <X className="w-3 h-3" />
+                Clear Filters
+              </button>
             )}
           </div>
         </Reveal>
 
-        {/* ===== Loading state ===== */}
-        {loading && (
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-5 sm:gap-6" aria-busy="true" aria-label="Loading discovery results">
-            {[1, 2, 3, 4, 5, 6, 7, 8].map((i) => (
-              <ProductSkeleton key={i} />
+        {/* ===== Toolbar: Dynamic Result count, Store filter, Sort dropdown ===== */}
+        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mb-8">
+          <div className="flex items-center gap-2 text-sm text-gray-300">
+            {loadingInitial ? (
+              <span className="text-gray-400 animate-pulse">Searching catalog…</span>
+            ) : (
+              <span className="font-medium">
+                Showing <span className="font-bold text-white">{products.length}</span> of{' '}
+                <span className="font-bold text-white">{total}</span> product{total === 1 ? '' : 's'}
+              </span>
+            )}
+          </div>
+
+          <div className="flex items-center gap-3 w-full sm:w-auto justify-between sm:justify-end">
+            {/* Merchant filter dropdown */}
+            {merchants.length > 0 && (
+              <select
+                value={merchant}
+                onChange={(e) => setMerchant(e.target.value)}
+                aria-label="Filter by merchant store"
+                className="px-3 py-2 rounded-2xl glass border border-white/10 text-xs sm:text-sm font-medium outline-none bg-black/40 text-gray-200"
+              >
+                <option value="">All Stores ({merchants.length})</option>
+                {merchants.map((m) => (
+                  <option key={m} value={m} className="bg-gray-900 text-white">
+                    {m}
+                  </option>
+                ))}
+              </select>
+            )}
+
+            {/* Compact sort selector */}
+            <select
+              value={sort}
+              onChange={(e) => setSort(e.target.value)}
+              aria-label="Sort products"
+              className="px-3 py-2 rounded-2xl glass border border-white/10 text-xs sm:text-sm font-medium outline-none bg-black/40 text-gray-200"
+            >
+              {SORT_OPTIONS.map((option) => (
+                <option key={option.value} value={option.value} className="bg-gray-900 text-white">
+                  {option.label}
+                </option>
+              ))}
+            </select>
+          </div>
+        </div>
+
+        {/* ===== Loading Initial Skeleton State ===== */}
+        {loadingInitial ? (
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6" aria-busy="true" aria-label="Loading discovery results">
+            {[1, 2, 3, 4, 5, 6, 7, 8].map((n) => (
+              <ProductSkeleton key={n} />
             ))}
           </div>
-        )}
-
-        {/* ===== Error state ===== */}
-        {!loading && error && (
-          <ErrorState message={error} onRetry={() => setReloadKey((key) => key + 1)} />
-        )}
-
-        {/* ===== Empty state ===== */}
-        {!loading && !error && products.length === 0 && (
+        ) : error ? (
+          <ErrorState message={error} onRetry={() => setReloadKey((k) => k + 1)} />
+        ) : products.length === 0 ? (
           <EmptyState
             icon={Search}
-            title="No matching products found."
-            message="Try another search or remove a filter."
-            actionLabel="Clear search & filters"
-            onAction={() => {
-              setQuery('')
-              setMerchant('')
-              setSort('relevance')
-            }}
+            title="No matching products found"
+            message={
+              hasActiveFilters
+                ? 'Try broadening your filters or clearing search filters to see more fashion items.'
+                : 'Try adjusting your search keywords to find what you are looking for.'
+            }
+            actionLabel={hasActiveFilters ? 'Clear search & filters' : undefined}
+            onAction={hasActiveFilters ? clearFilters : undefined}
           />
-        )}
+        ) : (
+          <>
+            {/* ===== Results Grid ===== */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+              {products.map((product, index) => (
+                <DiscoveryCard
+                  key={`${product.id}-${index}`}
+                  product={product}
+                  index={index}
+                />
+              ))}
+            </div>
 
-        {/* ===== Results grid ===== */}
-        {!loading && !error && products.length > 0 && (
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-5 sm:gap-6">
-            {products.map((product, i) => (
-              <DiscoveryCard key={`${product.id}-${merchant}-${sort}`} product={product} index={i} />
-            ))}
-          </div>
+            {/* ===== Load More Progress Button ===== */}
+            {hasNext && (
+              <div className="mt-12 text-center">
+                <button
+                  type="button"
+                  onClick={handleLoadMore}
+                  disabled={loadingMore}
+                  aria-label="Load more products"
+                  className="inline-flex items-center justify-center gap-2.5 px-8 py-3.5 rounded-2xl glass hover:bg-primary/20 text-sm font-semibold text-white border border-white/15 transition-all shadow-glow hover:scale-[1.02] active:scale-[0.98] disabled:opacity-50 min-h-[48px]"
+                >
+                  {loadingMore ? (
+                    <>
+                      <Loader2 className="w-4 h-4 animate-spin text-primary" />
+                      <span>Loading additional products…</span>
+                    </>
+                  ) : (
+                    <>
+                      <span>Load More Products</span>
+                      <ChevronDown className="w-4 h-4 text-primary" />
+                    </>
+                  )}
+                </button>
+                <p className="mt-2 text-xs text-gray-400">
+                  Showing {products.length} of {total} products
+                </p>
+              </div>
+            )}
+          </>
         )}
       </div>
     </section>

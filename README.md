@@ -324,6 +324,7 @@ The application automatically falls back to SQLite (`styleverse_ai.db`) if no `D
 
 | Variable | Description | Default |
 |----------|-------------|---------|
+| `VITE_API_BASE_URL` | Main Backend base URL (Global default) | `http://127.0.0.1:8000` |
 | `VITE_PRODUCTS_API_URL` | Products API base URL | `http://127.0.0.1:8000/api/products` |
 | `VITE_AUTH_API_URL` | Auth API base URL | `http://127.0.0.1:8000/api/auth` |
 | `VITE_WISHLIST_API_URL` | Wishlist API base URL | `http://127.0.0.1:8000/api/wishlist` |

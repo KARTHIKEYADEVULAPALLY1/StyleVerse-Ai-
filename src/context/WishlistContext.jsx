@@ -6,11 +6,14 @@ import {
   removeProductFromWishlist,
 } from '../services/wishlistService'
 import { trackWishlistAdded, trackWishlistRemoved } from '../services/analyticsService'
+import { useToast } from '../components/ui/Toast'
+import { getErrorMessage } from '../services/apiClient'
 
 const WishlistContext = createContext(null)
 
 export function WishlistProvider({ children }) {
   const { token, isAuthenticated } = useAuth()
+  const toast = useToast()
   const [wishlistProducts, setWishlistProducts] = useState([])
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState(null)
@@ -29,8 +32,9 @@ export function WishlistProvider({ children }) {
       const data = await fetchWishlist(currentToken)
       setWishlistProducts(Array.isArray(data) ? data : [])
     } catch (err) {
+      // Silent failure on initial load — don't spam toasts
       setWishlistProducts([])
-      setError(err.message || 'Unable to load wishlist.')
+      setError(null)
     } finally {
       setLoading(false)
     }
@@ -68,8 +72,10 @@ export function WishlistProvider({ children }) {
         return [...prev, savedProduct]
       })
       setError(null)
+      toast.success('Added to wishlist')
     } catch (err) {
-      setError(err.message || 'Unable to add product to wishlist.')
+      setError(getErrorMessage(err))
+      toast.error(getErrorMessage(err))
     }
   }
 
@@ -83,8 +89,10 @@ export function WishlistProvider({ children }) {
       trackWishlistRemoved(productId)
       setWishlistProducts((prev) => prev.filter((item) => Number(item.id) !== Number(productId)))
       setError(null)
+      toast.success('Removed from wishlist')
     } catch (err) {
-      setError(err.message || 'Unable to remove product from wishlist.')
+      setError(getErrorMessage(err))
+      toast.error(getErrorMessage(err))
     }
   }
 

@@ -14,6 +14,7 @@ import PriceComparison from './PriceComparison'
 import ProductCard from './ui/ProductCard'
 import ProductSkeleton from './ui/ProductSkeleton'
 import { EmptyState, ErrorState } from './ui/ProductState'
+import ProductImage from './ui/ProductImage'
 
 function RelatedProducts({ productId, category }) {
   const [relatedProducts, setRelatedProducts] = useState([])
@@ -277,14 +278,7 @@ export default function ProductDetails() {
           <Reveal direction="right">
             <div className="rounded-4xl glass dark:glass p-4 sm:p-6 overflow-hidden">
               <div className="relative overflow-hidden rounded-3xl">
-                <motion.img
-                  initial={{ opacity: 0, scale: 0.96 }}
-                  animate={{ opacity: 1, scale: 1 }}
-                  transition={{ duration: 0.5 }}
-                  src={product.image}
-                  alt={product.name}
-                  className="w-full h-[480px] sm:h-[560px] object-cover"
-                />
+                <ProductImage src={product.image} alt={product.name} eager containerClassName="w-full h-[480px] sm:h-[560px]" className="w-full h-full object-cover" />
                 <div className="absolute inset-0 bg-gradient-to-t from-black/30 to-transparent" />
                 <div className="absolute top-4 left-4 flex items-center gap-2 rounded-full bg-black/50 backdrop-blur-md px-3 py-1.5 text-white text-xs font-semibold">
                   <Tag className="w-3 h-3 text-yellow-400" />

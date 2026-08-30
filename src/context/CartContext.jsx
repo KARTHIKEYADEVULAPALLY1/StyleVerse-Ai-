@@ -3,11 +3,14 @@ import { useAuth } from './AuthContext'
 import { addCartItem, fetchCart, removeCartItem, updateCartItem } from '../services/cartService'
 import { createOrder } from '../services/orderService'
 import { trackCartAdded, trackCartRemoved } from '../services/analyticsService'
+import { useToast } from '../components/ui/Toast'
+import { getErrorMessage } from '../services/apiClient'
 
 const CartContext = createContext(null)
 
 export function CartProvider({ children }) {
   const { token, isAuthenticated } = useAuth()
+  const toast = useToast()
   const [items, setItems] = useState([])
   const [loading, setLoading] = useState(false)
   const [placingOrder, setPlacingOrder] = useState(false)
@@ -26,8 +29,9 @@ export function CartProvider({ children }) {
       const data = await fetchCart(currentToken)
       setItems(Array.isArray(data) ? data : [])
     } catch (err) {
+      // Silent failure on initial load — don't spam toasts
       setItems([])
-      setError(err.message || 'Unable to load cart.')
+      setError(null)
     } finally {
       setLoading(false)
     }
@@ -88,8 +92,10 @@ export function CartProvider({ children }) {
         return [...prev, savedItem]
       })
       setError(null)
+      toast.success('Added to cart')
     } catch (err) {
-      setError(err.message || 'Unable to add product to cart.')
+      setError(getErrorMessage(err))
+      toast.error(getErrorMessage(err))
     }
   }
 
@@ -120,7 +126,8 @@ export function CartProvider({ children }) {
       )
       setError(null)
     } catch (err) {
-      setError(err.message || 'Unable to update quantity.')
+      setError(getErrorMessage(err))
+      toast.error(getErrorMessage(err))
     }
   }
 
@@ -136,8 +143,10 @@ export function CartProvider({ children }) {
         )
       )
       setError(null)
+      toast.success('Removed from cart')
     } catch (err) {
-      setError(err.message || 'Unable to remove product from cart.')
+      setError(getErrorMessage(err))
+      toast.error(getErrorMessage(err))
     }
   }
 
@@ -152,8 +161,10 @@ export function CartProvider({ children }) {
       )
       setItems([])
       setError(null)
+      toast.success('Cart cleared')
     } catch (err) {
-      setError(err.message || 'Unable to clear cart.')
+      setError(getErrorMessage(err))
+      toast.error(getErrorMessage(err))
     }
   }
 
@@ -165,9 +176,11 @@ export function CartProvider({ children }) {
       setError(null)
       const createdOrder = await createOrder(token)
       setItems([])
+      toast.success('Order placed successfully')
       return createdOrder
     } catch (err) {
-      setError(err.message || 'Unable to place order.')
+      setError(getErrorMessage(err))
+      toast.error(getErrorMessage(err))
       return null
     } finally {
       setPlacingOrder(false)

@@ -1,4 +1,4 @@
-import { useRef, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { Wand2, Sparkles, Shirt, Calendar, Palette, RefreshCw, Check, AlertTriangle, IndianRupee } from 'lucide-react'
 import Reveal from './ui/Reveal'
@@ -8,6 +8,10 @@ import ProductSkeleton from './ui/ProductSkeleton'
 import { styleProfiles, occasions, colorPalettes } from '../data/fashionData'
 import { recommendOutfit } from '../services/stylistService'
 import { trackAiStylistUsed } from '../services/analyticsService'
+import { fetchPreferences } from '../services/preferencesService'
+import { useAuth } from '../context/AuthContext'
+import { useToast } from './ui/Toast'
+import { getErrorMessage } from '../services/apiClient'
 
 const budgetOptions = [1000, 2000, 3000, 5000, 8000, 10000]
 
@@ -29,6 +33,8 @@ function SectionHeading({ icon: Icon, children }) {
 }
 
 export default function AIStylist() {
+  const { token } = useAuth()
+  const toast = useToast()
   const [selectedStyle, setSelectedStyle] = useState(2)
   const [selectedOccasion, setSelectedOccasion] = useState(3)
   const [selectedPalette, setSelectedPalette] = useState(5)
@@ -36,8 +42,129 @@ export default function AIStylist() {
   const [generating, setGenerating] = useState(false)
   const [generated, setGenerated] = useState(false)
   const [recommendations, setRecommendations] = useState([])
+  const [outfit, setOutfit] = useState(null)
   const [error, setError] = useState(null)
   const resultsRef = useRef(null)
+
+  // Reuse explicit onboarding choices when available, while retaining the
+  // existing stylist defaults for guests and users who skipped onboarding.
+  useEffect(() => {
+    if (!token) return
+    fetchPreferences(token).then((preferences) => {
+      if (!preferences?.completed) return
+
+      // ----- Style -----
+      // Prefer the new multi-select field; fall back to legacy single style.
+      const newStyles = Array.isArray(preferences.preferred_styles) ? preferences.preferred_styles : []
+      const legacyStyle = preferences.style
+      const styleName =
+        newStyles[0] ||
+        (legacyStyle
+          ? styleProfiles.find((item) => item.name.toLowerCase() === legacyStyle)?.name
+          : null)
+      if (styleName) {
+        const style = styleProfiles.find((item) => item.name.toLowerCase() === styleName.toLowerCase())
+        if (style) setSelectedStyle(style.id)
+      }
+
+      // ----- Occasion (sourced from preferred_categories) -----
+      // preferred_categories holds the user's category preferences; we use the
+      // first one that maps to a known occasion. Fall back to the legacy
+      // occasion field if no matching category is found.
+      const newCategories = Array.isArray(preferences.preferred_categories)
+        ? preferences.preferred_categories
+        : []
+      const categoryToOccasion = {
+        Hoodies: 'Casual Day',
+        Sneakers: 'Casual Day',
+        Jackets: 'Office',
+        Accessories: 'Date Night',
+        Pants: 'Office',
+        Bags: 'Office',
+        Tops: 'Casual Day',
+        Dresses: 'Wedding',
+        Outerwear: 'Office',
+        Blazers: 'Office',
+      }
+      const occasionName =
+        newCategories.map((cat) => categoryToOccasion[cat]).find(Boolean) ||
+        (preferences.occasion
+          ? occasions.find(
+            (item) => item.name.toLowerCase().replace(/\s+/g, '_') === preferences.occasion
+          )?.name
+          : null)
+      if (occasionName) {
+        const occasion = occasions.find(
+          (item) => item.name.toLowerCase() === occasionName.toLowerCase()
+        )
+        if (occasion) setSelectedOccasion(occasion.id)
+      }
+
+      // ----- Color palette (sourced from preferred_colors) -----
+      // The new preferred_colors array stores individual colors (e.g. "Black",
+      // "Cream"). Map the first one to a palette; fall back to the legacy
+      // color_palette field if no mapping is possible.
+      const newColors = Array.isArray(preferences.preferred_colors) ? preferences.preferred_colors : []
+      const colorToPalette = {
+        black: 'Monochrome',
+        gray: 'Monochrome',
+        grey: 'Monochrome',
+        charcoal: 'Monochrome',
+        white: 'Monochrome',
+        'off white': 'Monochrome',
+        cream: 'Neutrals',
+        stone: 'Neutrals',
+        silver: 'Neutrals',
+        sand: 'Neutrals',
+        neutral: 'Neutrals',
+        neutrals: 'Neutrals',
+        tan: 'Earth Tones',
+        camel: 'Earth Tones',
+        espresso: 'Earth Tones',
+        brown: 'Earth Tones',
+        olive: 'Earth Tones',
+        'earth tones': 'Earth Tones',
+        navy: 'Cool Blues',
+        blue: 'Cool Blues',
+        'cool blues': 'Cool Blues',
+        red: 'Bold & Bright',
+        orange: 'Bold & Bright',
+        yellow: 'Bold & Bright',
+        green: 'Bold & Bright',
+        pink: 'Bold & Bright',
+        purple: 'Bold & Bright',
+        wine: 'Bold & Bright',
+        champagne: 'Bold & Bright',
+        gold: 'Bold & Bright',
+        'bold & bright': 'Bold & Bright',
+        'bold bright': 'Bold & Bright',
+      }
+      const paletteName =
+        newColors.map((c) => colorToPalette[String(c).toLowerCase()]).find(Boolean) ||
+        Object.entries(paletteToColor).find(
+          ([name]) =>
+            name.toLowerCase().replace(/\s+/g, '_').replace('&_', '') === preferences.color_palette
+        )?.[0]
+      if (paletteName) {
+        const palette = colorPalettes.find((item) => item.name === paletteName)
+        if (palette) setSelectedPalette(palette.id)
+      }
+
+      // ----- Budget (sourced from preferred_price_min / preferred_price_max) -----
+      // Use the max as the stylist budget cap, falling back to the legacy
+      // budget value. Also respect a min when present.
+      const priceMax = Number(preferences.preferred_price_max)
+      const priceMin = Number(preferences.preferred_price_min)
+      const legacyBudget = Number(preferences.budget)
+      const candidateBudget = Number.isFinite(priceMax) && priceMax > 0
+        ? priceMax
+        : (Number.isFinite(priceMin) && priceMin > 0 ? priceMin : null)
+      const resolvedBudget = candidateBudget ?? (Number.isFinite(legacyBudget) && legacyBudget > 0 ? legacyBudget : null)
+      if (resolvedBudget) {
+        setSelectedBudget(resolvedBudget)
+      }
+    }).catch(() => { })
+  }, [token])
 
   const selectedPaletteData = colorPalettes.find((palette) => palette.id === selectedPalette)
 
@@ -60,8 +187,11 @@ export default function AIStylist() {
         budget: Number(selectedBudget),
       })
 
-      const items = Array.isArray(response?.recommendation) ? response.recommendation : []
+      const items = Array.isArray(response?.outfit?.items)
+        ? response.outfit.items.map((item) => ({ ...item.product, role: item.role }))
+        : (Array.isArray(response?.recommendation) ? response.recommendation : [])
       setRecommendations(items)
+      setOutfit(response?.outfit || null)
       setGenerated(true)
 
       // Non-sensitive usage context only - never any personal data or images.
@@ -74,9 +204,11 @@ export default function AIStylist() {
         resultsRef.current?.scrollIntoView({ behavior: 'smooth', block: 'nearest' })
       })
     } catch (err) {
+      const friendlyMessage = getErrorMessage(err)
       setRecommendations([])
-      setError(err.message || 'Unable to generate recommendations.')
+      setError(friendlyMessage)
       setGenerated(true)
+      toast.error(friendlyMessage)
     } finally {
       setGenerating(false)
     }
@@ -124,11 +256,10 @@ export default function AIStylist() {
                         key={style.id}
                         onClick={() => setSelectedStyle(style.id)}
                         aria-pressed={active}
-                        className={`relative p-4 rounded-2xl text-left transition-all duration-300 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary ${
-                          active
-                            ? 'bg-gradient-to-br from-primary/25 to-secondary/25 border border-primary/60 shadow-glow scale-[1.02]'
-                            : 'glass dark:glass hover:bg-white/10 dark:hover:bg-white/10 border border-transparent'
-                        }`}
+                        className={`relative p-4 rounded-2xl text-left transition-all duration-300 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary ${active
+                          ? 'bg-gradient-to-br from-primary/25 to-secondary/25 border border-primary/60 shadow-glow scale-[1.02]'
+                          : 'glass dark:glass hover:bg-white/10 dark:hover:bg-white/10 border border-transparent'
+                          }`}
                       >
                         {active && (
                           <motion.span
@@ -159,11 +290,10 @@ export default function AIStylist() {
                         key={occasion.id}
                         onClick={() => setSelectedOccasion(occasion.id)}
                         aria-pressed={active}
-                        className={`inline-flex items-center gap-2 px-4 py-2.5 rounded-full text-sm font-medium transition-all duration-300 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary ${
-                          active
-                            ? 'bg-gradient-to-r from-primary to-secondary text-white shadow-glow scale-[1.03]'
-                            : 'glass dark:glass hover:bg-white/10 dark:hover:bg-white/10 text-gray-800 dark:text-gray-200'
-                        }`}
+                        className={`inline-flex items-center gap-2 px-4 py-2.5 rounded-full text-sm font-medium transition-all duration-300 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary ${active
+                          ? 'bg-gradient-to-r from-primary to-secondary text-white shadow-glow scale-[1.03]'
+                          : 'glass dark:glass hover:bg-white/10 dark:hover:bg-white/10 text-gray-800 dark:text-gray-200'
+                          }`}
                       >
                         <span>{occasion.emoji}</span>
                         <span>{occasion.name}</span>
@@ -186,19 +316,17 @@ export default function AIStylist() {
                         onClick={() => setSelectedPalette(palette.id)}
                         aria-pressed={active}
                         aria-label={`Color palette ${palette.name}`}
-                        className={`flex items-center gap-2.5 rounded-full px-4 py-2 text-sm transition-all duration-300 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary ${
-                          active
-                            ? 'bg-primary/10 text-primary border-2 border-primary shadow-glow font-semibold'
-                            : 'glass dark:glass hover:bg-white/10 dark:hover:bg-white/10 border-2 border-transparent text-gray-700 dark:text-gray-300'
-                        }`}
+                        className={`flex items-center gap-2.5 rounded-full px-4 py-2 text-sm transition-all duration-300 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary ${active
+                          ? 'bg-primary/10 text-primary border-2 border-primary shadow-glow font-semibold'
+                          : 'glass dark:glass hover:bg-white/10 dark:hover:bg-white/10 border-2 border-transparent text-gray-700 dark:text-gray-300'
+                          }`}
                       >
                         <span className="flex -space-x-1.5">
                           {palette.colors.map((color, i) => (
                             <span
                               key={i}
-                              className={`w-5 h-5 rounded-full border-2 transition-transform duration-300 ${
-                                active ? 'scale-110' : ''
-                              } ${['#ffffff', '#d3d3d3', '#cccccc'].includes(color.toLowerCase()) ? 'border-white/60' : 'border-white/20'}`}
+                              className={`w-5 h-5 rounded-full border-2 transition-transform duration-300 ${active ? 'scale-110' : ''
+                                } ${['#ffffff', '#d3d3d3', '#cccccc'].includes(color.toLowerCase()) ? 'border-white/60' : 'border-white/20'}`}
                               style={{ backgroundColor: color, boxShadow: active ? '0 0 10px rgba(255,46,136,0.35)' : 'none' }}
                             />
                           ))}
@@ -297,7 +425,14 @@ export default function AIStylist() {
                     className="space-y-6"
                   >
                     <div className="flex items-center justify-between flex-wrap gap-3">
-                      <h3 className="font-display text-xl font-bold">Your AI Style Picks</h3>
+                      <div>
+                        <h3 className="font-display text-xl font-bold">Your Complete Outfit</h3>
+                        {outfit && (
+                          <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
+                            {outfit.items.length} pieces · ₹{Number(outfit.total_price).toLocaleString('en-IN')} total
+                          </p>
+                        )}
+                      </div>
                       <span className="flex items-center gap-1 px-3 py-1 rounded-full bg-green-500/10 text-green-500 text-xs font-semibold">
                         <Check className="w-3 h-3" />
                         Generated
@@ -311,6 +446,13 @@ export default function AIStylist() {
                           <span className="font-semibold">Unable to generate</span>
                         </div>
                         <p className="text-sm">{error}</p>
+                        <button
+                          onClick={() => { setError(null); handleGenerate() }}
+                          className="mt-3 flex items-center gap-2 px-4 py-2 rounded-xl bg-red-500/20 hover:bg-red-500/30 border border-red-500/30 text-red-200 text-sm font-semibold transition-colors"
+                        >
+                          <RefreshCw className="w-3.5 h-3.5" />
+                          Try Again
+                        </button>
                       </div>
                     ) : generating ? (
                       <div className="flex gap-5 overflow-x-auto no-scrollbar pb-2" aria-busy="true" aria-label="Generating outfit recommendations">
@@ -337,7 +479,12 @@ export default function AIStylist() {
                               show: { opacity: 1, y: 0, transition: { duration: 0.45, ease: 'easeOut' } },
                             }}
                           >
-                            <ProductCard product={product} index={i} showMatch={false} />
+                            <div className="space-y-2">
+                              {product.role && (
+                                <div className="text-xs font-bold uppercase tracking-widest text-primary">{product.role}</div>
+                              )}
+                              <ProductCard product={product} index={i} showMatch={false} />
+                            </div>
                           </motion.div>
                         ))}
                       </motion.div>

@@ -5,6 +5,7 @@ import { useNavigate } from 'react-router-dom'
 import { useWishlist } from '../../context/WishlistContext'
 import { useAuth } from '../../context/AuthContext'
 import TiltCard from './TiltCard'
+import ProductImage from './ProductImage'
 
 const productGradients = [
   'from-blue-500/20 to-purple-500/20',
@@ -39,8 +40,6 @@ export default function ProductCard({
   const { isAuthenticated } = useAuth()
   const { isInWishlist, toggleWishlist } = useWishlist()
 
-  const [imageError, setImageError] = useState(false)
-  const [imageLoaded, setImageLoaded] = useState(false)
   const [wishlistAnimating, setWishlistAnimating] = useState(false)
 
   if (!product) return null
@@ -100,34 +99,7 @@ export default function ProductCard({
         >
           {/* ===== Image ===== */}
           <div className="relative aspect-[4/5] overflow-hidden bg-gray-100 dark:bg-gray-800">
-            {!imageError ? (
-              <>
-                <img
-                  src={product.image}
-                  alt={product.name}
-                  loading="lazy"
-                  onLoad={() => setImageLoaded(true)}
-                  onError={() => setImageError(true)}
-                  className={`w-full h-full object-cover transition-all duration-700 group-hover:scale-110 ${
-                    imageLoaded ? 'opacity-100' : 'opacity-0'
-                  }`}
-                />
-                {!imageLoaded && (
-                  <div className="absolute inset-0 flex items-center justify-center">
-                    <div className="w-10 h-10 rounded-full border-2 border-primary/30 border-t-primary animate-spin" />
-                  </div>
-                )}
-              </>
-            ) : (
-              <div className="absolute inset-0 flex flex-col items-center justify-center gap-3 bg-gradient-to-br from-gray-100 to-gray-200 dark:from-gray-800 dark:to-gray-900">
-                <div className="w-14 h-14 rounded-2xl bg-white/60 dark:bg-white/10 flex items-center justify-center">
-                  <ImageOff className="w-6 h-6 text-gray-400 dark:text-gray-500" />
-                </div>
-                <span className="text-xs font-medium text-gray-500 dark:text-gray-400">
-                  Image unavailable
-                </span>
-              </div>
-            )}
+            <ProductImage src={product.image} alt={product.name} containerClassName="absolute inset-0" className="w-full h-full object-cover group-hover:scale-110" />
 
             {/* Hover gradient overlay */}
             <div className={`pointer-events-none absolute inset-0 bg-gradient-to-t ${productGradients[index % productGradients.length]} opacity-0 group-hover:opacity-100 transition-opacity duration-500`} />

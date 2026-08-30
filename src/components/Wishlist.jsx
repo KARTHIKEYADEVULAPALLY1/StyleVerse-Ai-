@@ -7,6 +7,7 @@ import MagneticButton from './ui/MagneticButton'
 import { useWishlist } from '../context/WishlistContext'
 import { useNavigate } from 'react-router-dom'
 import { EmptyState } from './ui/ProductState'
+import ProductImage from './ui/ProductImage'
 
 function parsePriceValue(value) {
   return Number(String(value || '').replace(/[^\d]/g, '')) || 0
@@ -22,8 +23,6 @@ function formatPrice(value) {
 }
 
 function WishlistCard({ item, notifyEnabled, onToggleNotify, onRemove, onView }) {
-  const [imageError, setImageError] = useState(false)
-  const [imageLoaded, setImageLoaded] = useState(false)
 
   const priceValue = parsePriceValue(item.price)
   const originalPriceValue = parsePriceValue(item.originalPrice || item.original_price)
@@ -38,32 +37,7 @@ function WishlistCard({ item, notifyEnabled, onToggleNotify, onRemove, onView })
       <div className="group relative rounded-4xl overflow-hidden glass dark:glass h-full transition-all duration-500 hover:shadow-glow hover:-translate-y-1.5">
         {/* Image */}
         <div className="relative aspect-[4/5] overflow-hidden bg-gray-100 dark:bg-gray-800">
-          {!imageError ? (
-            <>
-              <img
-                src={item.image}
-                alt={item.name}
-                loading="lazy"
-                onLoad={() => setImageLoaded(true)}
-                onError={() => setImageError(true)}
-                className={`w-full h-full object-cover transition-all duration-700 group-hover:scale-110 ${
-                  imageLoaded ? 'opacity-100' : 'opacity-0'
-                }`}
-              />
-              {!imageLoaded && (
-                <div className="absolute inset-0 flex items-center justify-center">
-                  <div className="w-10 h-10 rounded-full border-2 border-primary/30 border-t-primary animate-spin" />
-                </div>
-              )}
-            </>
-          ) : (
-            <div className="absolute inset-0 flex flex-col items-center justify-center gap-3 bg-gradient-to-br from-gray-100 to-gray-200 dark:from-gray-800 dark:to-gray-900">
-              <div className="w-14 h-14 rounded-2xl bg-white/60 dark:bg-white/10 flex items-center justify-center">
-                <ImageOff className="w-6 h-6 text-gray-400 dark:text-gray-500" />
-              </div>
-              <span className="text-xs font-medium text-gray-500 dark:text-gray-400">Image unavailable</span>
-            </div>
-          )}
+          <ProductImage src={item.image} alt={item.name} containerClassName="absolute inset-0" className="w-full h-full object-cover group-hover:scale-110" />
 
           {/* Badges */}
           <div className="absolute top-3 left-3 flex flex-col gap-2 pointer-events-none">

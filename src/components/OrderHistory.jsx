@@ -7,6 +7,7 @@ import { fetchOrders } from '../services/orderService'
 import { resolveProductPreview } from '../services/orderPreviewService'
 import Reveal from './ui/Reveal'
 import MagneticButton from './ui/MagneticButton'
+import ProductImage from './ui/ProductImage'
 
 const statusStyles = {
   pending: 'text-yellow-500 bg-yellow-500/10 border-yellow-500/20',
@@ -272,7 +273,7 @@ export default function OrderHistory() {
                     {/* Product image preview */}
                     <div className="w-14 h-14 shrink-0 rounded-2xl overflow-hidden bg-white/5 border border-white/10 flex items-center justify-center">
                       {previewImage ? (
-                        <img src={previewImage} alt="" className="w-full h-full object-cover" />
+                        <ProductImage src={previewImage} alt="" containerClassName="w-full h-full" className="w-full h-full object-cover" />
                       ) : (
                         <Package className="w-6 h-6 text-primary/60" />
                       )}

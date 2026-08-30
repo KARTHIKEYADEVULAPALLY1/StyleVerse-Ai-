@@ -1,4 +1,5 @@
-const API_BASE_URL = import.meta.env.VITE_PRODUCTS_API_URL || 'http://127.0.0.1:8000/api/products'
+const ROOT_URL = (import.meta.env?.VITE_API_BASE_URL || 'http://127.0.0.1:8000').replace(/\/+$/, '')
+const API_BASE_URL = import.meta.env?.VITE_PRODUCTS_API_URL || `${ROOT_URL}/api/products`
 
 async function apiFetch(path, options = {}) {
   try {
@@ -22,12 +23,34 @@ async function apiFetch(path, options = {}) {
 }
 
 /**
- * Fetch all products from the API.
- * @returns {Promise<Array>}
+ * Fetch products from the API with optional pagination and filters.
+ * @param {Object} params { page, limit, sort, category, brand }
+ * @returns {Promise<Array|Object>}
  */
-export async function fetchProducts() {
-  return apiFetch('')
+export async function fetchProducts(params = {}) {
+  const search = new URLSearchParams()
+  Object.entries(params).forEach(([key, value]) => {
+    if (value !== undefined && value !== null && value !== '') {
+      search.set(key, String(value))
+    }
+  })
+  const queryString = search.toString()
+  const data = await apiFetch(queryString ? `?${queryString}` : '')
+  if (Array.isArray(data)) return data
+  return data?.items || data?.products || []
 }
+
+export async function fetchPaginatedProducts(params = {}) {
+  const search = new URLSearchParams()
+  Object.entries(params).forEach(([key, value]) => {
+    if (value !== undefined && value !== null && value !== '') {
+      search.set(key, String(value))
+    }
+  })
+  const queryString = search.toString()
+  return apiFetch(queryString ? `?${queryString}` : '')
+}
+
 
 /**
  * Search products by keyword against the real product database.

@@ -6,6 +6,7 @@ import { fetchOrderById } from '../services/orderService'
 import { useOrderProductPreviews } from '../services/orderPreviewService'
 import Reveal from './ui/Reveal'
 import MagneticButton from './ui/MagneticButton'
+import ProductImage from './ui/ProductImage'
 
 const statusStyles = {
   pending: 'text-yellow-500 bg-yellow-500/10 border-yellow-500/20',
@@ -229,7 +230,7 @@ export default function OrderConfirmation() {
             <div className="flex flex-col sm:flex-row sm:items-center gap-4 mb-6">
               <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-primary/20 to-secondary/20 flex items-center justify-center shrink-0">
                 {preview?.image ? (
-                  <img src={preview.image} alt="" className="w-full h-full object-cover rounded-2xl" />
+                  <ProductImage src={preview.image} alt="" containerClassName="w-full h-full rounded-2xl" className="w-full h-full object-cover" />
                 ) : (
                   <Package className="w-6 h-6 text-primary" />
                 )}
@@ -268,7 +269,7 @@ export default function OrderConfirmation() {
                     <div className="flex items-center gap-3 min-w-0">
                       <div className="w-16 h-16 shrink-0 rounded-2xl overflow-hidden bg-white/5 border border-white/10 flex items-center justify-center">
                         {itemPreview.image ? (
-                          <img src={itemPreview.image} alt={item.product_name} className="w-full h-full object-cover" />
+                          <ProductImage src={itemPreview.image} alt={item.product_name} containerClassName="w-full h-full" className="w-full h-full object-cover" />
                         ) : (
                           <Package className="w-6 h-6 text-primary/60" />
                         )}

@@ -3,7 +3,8 @@ from __future__ import annotations
 from datetime import datetime
 from typing import List, Optional
 
-from pydantic import BaseModel, ConfigDict
+from pydantic import BaseModel, ConfigDict, field_validator
+from app.services.media_storage import normalize_public_image_url
 
 
 class ProductOfferResponse(BaseModel):
@@ -30,6 +31,11 @@ class ProductOfferResponse(BaseModel):
     # Backend redirect endpoint that forwards the user to the merchant page
     # (single place to add click tracking later without touching the UI).
     visit_url: Optional[str] = None
+
+    @field_validator('image_url', mode='before')
+    @classmethod
+    def normalize_image_url(cls, value):
+        return normalize_public_image_url(value)
 
 
 class ProductPricesResponse(BaseModel):

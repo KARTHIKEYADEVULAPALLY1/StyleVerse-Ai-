@@ -26,11 +26,16 @@ SORT_ALIASES = {
     'relevance': 'relevance',
     'price_asc': 'price_asc',
     'lowest_price': 'price_asc',
+    'price_low': 'price_asc',
     'price_desc': 'price_desc',
     'highest_price': 'price_desc',
+    'price_high': 'price_desc',
     'rating_desc': 'rating_desc',
     'highest_rating': 'rating_desc',
+    'rating': 'rating_desc',
+    'newest': 'newest',
 }
+
 
 
 def normalize_sort(sort: str | None) -> str:
@@ -67,16 +72,55 @@ def discover_products(
     q: str = '',
     category: str | None = None,
     brand: str | None = None,
+    style: str | None = None,
+    occasion: str | None = None,
+    color: str | None = None,
+    subcategory: str | None = None,
+    season: str | None = None,
+    gender: str | None = None,
     min_price: float | None = None,
     max_price: float | None = None,
     merchant: str | None = None,
     sort: str | None = 'relevance',
+    page: int = 1,
+    limit: int = 20,
 ) -> dict[str, Any]:
-    """Search + aggregate multi-store discovery results."""
+    """Search + aggregate multi-store discovery results with pagination and normalized metadata filters."""
     products = search_products(db, q)
 
     category_filter = (category or '').strip().lower()
     brand_filter = (brand or '').strip().lower()
+    style_filter = (style or '').strip().lower()
+    occasion_filter = (occasion or '').strip().lower()
+    color_filter = (color or '').strip().lower()
+    subcategory_filter = (subcategory or '').strip().lower()
+    season_filter = (season or '').strip().lower()
+    gender_filter = (gender or '').strip().lower()
+
+    # Collect available filter values from all matching search products
+    all_categories: set[str] = set()
+    all_brands: set[str] = set()
+    all_styles: set[str] = set()
+    all_occasions: set[str] = set()
+    all_colors: set[str] = set()
+    all_seasons: set[str] = set()
+    all_subcategories: set[str] = set()
+
+    for p in products:
+        if p.category:
+            all_categories.add(p.category)
+        if p.brand:
+            all_brands.add(p.brand)
+        if p.subcategory:
+            all_subcategories.add(p.subcategory)
+        for st in getattr(p, 'styles', []) or []:
+            all_styles.add(st)
+        for occ in getattr(p, 'occasions', []) or []:
+            all_occasions.add(occ)
+        for col in getattr(p, 'normalized_colors', []) or getattr(p, 'colors', []) or []:
+            all_colors.add(col)
+        for sea in getattr(p, 'seasons', []) or []:
+            all_seasons.add(sea)
 
     filtered: list[Any] = []
     for product in products:
@@ -84,6 +128,31 @@ def discover_products(
             continue
         if brand_filter and (product.brand or '').strip().lower() != brand_filter:
             continue
+        if subcategory_filter and (product.subcategory or '').strip().lower() != subcategory_filter:
+            continue
+        if gender_filter and (product.target_gender or '').strip().lower() != gender_filter:
+            continue
+
+        if style_filter:
+            prod_styles = [s.strip().lower() for s in getattr(product, 'styles', []) or []]
+            if style_filter not in prod_styles:
+                continue
+
+        if occasion_filter:
+            prod_occasions = [o.strip().lower() for o in getattr(product, 'occasions', []) or []]
+            if occasion_filter not in prod_occasions:
+                continue
+
+        if color_filter:
+            prod_colors = [c.strip().lower() for c in (getattr(product, 'normalized_colors', []) or getattr(product, 'colors', []) or [])]
+            if color_filter not in prod_colors:
+                continue
+
+        if season_filter:
+            prod_seasons = [s.strip().lower() for s in getattr(product, 'seasons', []) or []]
+            if season_filter not in prod_seasons and 'all season' not in prod_seasons:
+                continue
+
         filtered.append(product)
 
     # Batch-load offers for every matched product in one query (ordered by
@@ -107,8 +176,6 @@ def discover_products(
 
     for product in filtered:
         all_offers = offers_by_product.get(product.id, [])
-        # Merchant chips must reflect stores that actually appear in results
-        # (before the merchant filter narrows them down).
         for offer in all_offers:
             if offer.store:
                 merchants_present.add(offer.store)
@@ -135,6 +202,13 @@ def discover_products(
                 'brand': product.brand,
                 'image': product.image,
                 'category': product.category,
+                'subcategory': getattr(product, 'subcategory', None),
+                'target_gender': getattr(product, 'target_gender', 'Unisex'),
+                'styles': getattr(product, 'styles', []) or [],
+                'occasions': getattr(product, 'occasions', []) or [],
+                'materials': getattr(product, 'materials', []) or [],
+                'seasons': getattr(product, 'seasons', []) or [],
+                'normalized_colors': getattr(product, 'normalized_colors', []) or getattr(product, 'colors', []) or [],
                 'rating': float(product.rating or 0.0),
                 'base_price': parse_currency_value(product.price),
                 'currency': (best.currency if best else (scoped[0].currency if scoped else 'INR')),
@@ -152,16 +226,42 @@ def discover_products(
         entries.sort(key=lambda e: (e['best_offer'] is None, -e['_sort_price'], e['id']))
     elif sort_key == 'rating_desc':
         entries.sort(key=lambda e: (-e['rating'], e['id']))
+    elif sort_key == 'newest':
+        entries.sort(key=lambda e: (-e['id'],))
     # 'relevance' keeps the semantic-search ordering untouched.
 
+    # Total results before pagination
+    total_count = len(entries)
+    safe_page = max(1, page)
+    safe_limit = max(1, min(100, limit))
+    start_index = (safe_page - 1) * safe_limit
+    end_index = start_index + safe_limit
+    paginated_entries = entries[start_index:end_index]
+    has_next = end_index < total_count
+
     # Drop internal sort helpers before serialization.
-    for entry in entries:
+    for entry in paginated_entries:
         entry.pop('_sort_price', None)
 
     return {
         'query': q or '',
         'sort': sort_key,
+        'page': safe_page,
+        'limit': safe_limit,
+        'total': total_count,
+        'has_next': has_next,
+        'items': paginated_entries,
+        'products': paginated_entries,
         'merchants': sorted(merchants_present),
-        'total': len(entries),
-        'products': entries,
+        'available_filters': {
+            'categories': sorted(all_categories),
+            'brands': sorted(all_brands),
+            'styles': sorted(all_styles),
+            'occasions': sorted(all_occasions),
+            'colors': sorted(all_colors),
+            'seasons': sorted(all_seasons),
+            'subcategories': sorted(all_subcategories),
+        },
     }
+
+

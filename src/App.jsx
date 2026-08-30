@@ -6,6 +6,8 @@ import { ThemeProvider } from './context/ThemeContext'
 import { AuthProvider } from './context/AuthContext'
 import { WishlistProvider } from './context/WishlistContext'
 import { CartProvider } from './context/CartContext'
+import { ToastProvider } from './components/ui/Toast'
+import ErrorBoundary from './components/ui/ErrorBoundary'
 import CursorGlow from './components/ui/CursorGlow'
 import Navbar from './components/Navbar'
 import Hero from './components/Hero'
@@ -28,6 +30,7 @@ import AdminMerchantDashboard from './components/AdminMerchantDashboard'
 import AdminCatalogDashboard from './components/AdminCatalogDashboard'
 import AdminAnalyticsDashboard from './components/AdminAnalyticsDashboard'
 import LoginPage from './components/LoginPage'
+import StyleOnboarding from './components/StyleOnboarding'
 import OrderConfirmation from './components/OrderConfirmation'
 import OrderHistory from './components/OrderHistory'
 import { fetchProducts, searchProducts } from './services/productService'
@@ -264,31 +267,36 @@ export default function App() {
   }, [location.pathname])
 
   return (
-    <ThemeProvider>
-      <AuthProvider>
-        <WishlistProvider>
-          <CartProvider>
-            <div className="min-h-screen relative">
-              <CursorGlow />
-              <div className="noise-overlay" />
+    <ErrorBoundary>
+      <ThemeProvider>
+        <ToastProvider>
+          <AuthProvider>
+            <WishlistProvider>
+              <CartProvider>
+                <div className="min-h-screen relative">
+                  <CursorGlow />
+                  <div className="noise-overlay" />
 
-              <Routes>
-                <Route path="/" element={<HomePage />} />
-                <Route path="/discover" element={<MultiStoreDiscovery />} />
-                <Route path="/admin/merchants" element={<AdminMerchantDashboard />} />
-                <Route path="/admin/catalog" element={<AdminCatalogDashboard />} />
-                <Route path="/admin/analytics" element={<AdminAnalyticsDashboard />} />
-                <Route path="/product/:id" element={<ProductDetails />} />
-                <Route path="/order/:id" element={<OrderConfirmation />} />
-                <Route path="/orders" element={<ProtectedOrders />} />
-                <Route path="/profile" element={<ProtectedDashboard />} />
-                <Route path="/login" element={<LoginPage initialMode="login" />} />
-                <Route path="/signup" element={<LoginPage initialMode="signup" />} />
-              </Routes>
-            </div>
-          </CartProvider>
-        </WishlistProvider>
-      </AuthProvider>
-    </ThemeProvider>
+                  <Routes>
+                    <Route path="/" element={<HomePage />} />
+                    <Route path="/discover" element={<MultiStoreDiscovery />} />
+                    <Route path="/admin/merchants" element={<AdminMerchantDashboard />} />
+                    <Route path="/admin/catalog" element={<AdminCatalogDashboard />} />
+                    <Route path="/admin/analytics" element={<AdminAnalyticsDashboard />} />
+                    <Route path="/product/:id" element={<ProductDetails />} />
+                    <Route path="/order/:id" element={<OrderConfirmation />} />
+                    <Route path="/orders" element={<ProtectedOrders />} />
+                    <Route path="/profile" element={<ProtectedDashboard />} />
+                    <Route path="/onboarding" element={<StyleOnboarding />} />
+                    <Route path="/login" element={<LoginPage initialMode="login" />} />
+                    <Route path="/signup" element={<LoginPage initialMode="signup" />} />
+                  </Routes>
+                </div>
+              </CartProvider>
+            </WishlistProvider>
+          </AuthProvider>
+        </ToastProvider>
+      </ThemeProvider>
+    </ErrorBoundary>
   )
 }

@@ -26,6 +26,7 @@ from app.models.cart import Cart, CartItem
 from app.models.order import Order, OrderItem
 from app.models.product import Product
 from app.models.user_event import UserEvent
+from app.services.preference_service import get_user_preferences
 from app.models.wishlist import Wishlist, WishlistItem
 from app.services.event_service import get_top_interacted_products
 from app.services.recommendation_service import (
@@ -229,6 +230,7 @@ def build_style_profile(db: Session, user_id: int) -> dict:
             )
         ],
         'profile_strength': compute_profile_strength(db, user_id),
+        'onboarding_preferences': get_user_preferences(db, user_id),
     }
 
 

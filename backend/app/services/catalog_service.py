@@ -147,6 +147,21 @@ def analyze_product(
             + '. Review manually - nothing is merged automatically.'
         )
 
+    # Metadata completeness checks
+    prod_colors = getattr(product, 'normalized_colors', []) or getattr(product, 'colors', []) or []
+    prod_styles = getattr(product, 'styles', []) or []
+    prod_occasions = getattr(product, 'occasions', []) or []
+
+    if not prod_colors:
+        issues.add('missing_color')
+        warnings.append('Missing color.')
+    if not prod_styles:
+        issues.add('missing_style')
+        warnings.append('Missing style.')
+    if not prod_occasions:
+        issues.add('missing_occasion')
+        warnings.append('Missing occasion.')
+
     critical_keys = {'missing_price', 'missing_category', 'no_active_offers', 'potential_duplicate'}
     if issues & critical_keys:
         catalog_status = 'critical'
@@ -163,6 +178,13 @@ def analyze_product(
         'name': product.name,
         'brand': product.brand,
         'category': product.category,
+        'subcategory': getattr(product, 'subcategory', None),
+        'target_gender': getattr(product, 'target_gender', 'Unisex'),
+        'styles': getattr(product, 'styles', []) or [],
+        'occasions': getattr(product, 'occasions', []) or [],
+        'materials': getattr(product, 'materials', []) or [],
+        'seasons': getattr(product, 'seasons', []) or [],
+        'normalized_colors': prod_colors,
         'description': product.description,
         'image': product.image,
         'price': product.price,
@@ -185,6 +207,7 @@ def analyze_product(
         'duplicate_of': duplicate_of or [],
         'offers': sorted(offer_rows, key=lambda r: float(r['price'])),
     }
+
 
 def _load_catalog(db: Session) -> tuple[list[dict[str, Any]], dict[int, list[int]]]:
     """Analyze every product once. Returns (analyzed products, duplicate map)."""

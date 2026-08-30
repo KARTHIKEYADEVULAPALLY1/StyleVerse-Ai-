@@ -18,6 +18,7 @@ from sqlalchemy.engine import Engine
 from app.database import Base
 from app.models.merchant import Merchant  # noqa: F401 - registers the table
 from app.models.merchant_sync import MerchantSync  # noqa: F401 - registers the table
+from app.models.user_preference import UserPreference  # noqa: F401 - registers the table
 
 logger = logging.getLogger(__name__)
 
@@ -32,7 +33,15 @@ OFFER_COLUMNS = {
 
 PRODUCT_COLUMNS = {
     'is_active': "BOOLEAN NOT NULL DEFAULT TRUE",
+    'subcategory': 'VARCHAR(100)',
+    'target_gender': "VARCHAR(50) DEFAULT 'Unisex'",
+    'styles': 'JSON',
+    'occasions': 'JSON',
+    'materials': 'JSON',
+    'seasons': 'JSON',
+    'normalized_colors': 'JSON',
 }
+
 
 # Admin role flag on users - additive, existing users default to non-admin.
 USER_COLUMNS = {
@@ -66,6 +75,16 @@ MERCHANT_FEED_COLUMNS = {
     'feed_auth_env_var': 'VARCHAR(100)',
     'feed_query': 'VARCHAR(200)',
 }
+
+USER_PREFERENCE_COLUMNS = {
+    'preferred_styles': 'JSON',
+    'preferred_categories': 'JSON',
+    'preferred_colors': 'JSON',
+    'preferred_brands': 'JSON',
+    'preferred_price_min': 'FLOAT',
+    'preferred_price_max': 'FLOAT',
+}
+
 
 
 def _table_columns(engine: Engine, table_name: str) -> set[str]:
@@ -133,6 +152,10 @@ def run_additive_migrations(engine: Engine) -> None:
 
     for column, ddl in MERCHANT_FEED_COLUMNS.items():
         _add_column_if_missing(engine, 'merchants', column, ddl)
+
+    for column, ddl in USER_PREFERENCE_COLUMNS.items():
+        _add_column_if_missing(engine, 'user_preferences', column, ddl)
+
 
 
 if __name__ == '__main__':  # pragma: no cover - manual utility entry point

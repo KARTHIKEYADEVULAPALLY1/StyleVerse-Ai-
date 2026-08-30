@@ -1,14 +1,15 @@
 from __future__ import annotations
 
-from typing import List
+from typing import Any, List, Optional, Union
 
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, Query, status
 from fastapi.responses import RedirectResponse
 from sqlalchemy.orm import Session
 
 from app.database import get_db
+from app.models.product import Product
 from app.models.product_offer import ProductOffer
-from app.schemas.product import ProductResponse
+from app.schemas.product import PaginatedProductResponse, ProductResponse
 from app.schemas.product_offer import ProductOfferResponse, ProductPricesResponse
 from app.services.price_service import get_product_prices, serialize_offers
 from app.services.product_service import get_all_products, get_product_by_id, search_products
@@ -16,11 +17,47 @@ from app.services.product_service import get_all_products, get_product_by_id, se
 router = APIRouter(prefix='/api/products', tags=['products'])
 
 
-@router.get('', response_model=List[ProductResponse], summary='Get all products')
-@router.get('/', response_model=List[ProductResponse], include_in_schema=False)
-def list_products(db: Session = Depends(get_db)) -> List[ProductResponse]:
-    """Retrieve all available StyleVerse products."""
-    products = get_all_products(db)
+
+@router.get('', response_model=Union[PaginatedProductResponse, List[ProductResponse]], summary='Get products with optional pagination')
+@router.get('/', response_model=Union[PaginatedProductResponse, List[ProductResponse]], include_in_schema=False)
+def list_products(
+    page: Optional[int] = Query(default=None, ge=1),
+    limit: Optional[int] = Query(default=None, ge=1, le=100),
+    sort: Optional[str] = None,
+    category: Optional[str] = None,
+    brand: Optional[str] = None,
+    db: Session = Depends(get_db),
+) -> Any:
+    """Retrieve available StyleVerse products, with optional pagination and filtering."""
+    query = db.query(Product).filter(Product.is_active.is_(True))
+    if category:
+        query = query.filter(Product.category.ilike(f'%{category.strip()}%'))
+    if brand:
+        query = query.filter(Product.brand.ilike(f'%{brand.strip()}%'))
+
+    if sort == 'rating':
+        query = query.order_by(Product.rating.desc(), Product.id.asc())
+    elif sort == 'newest':
+        query = query.order_by(Product.id.desc())
+    else:
+        query = query.order_by(Product.id.asc())
+
+    if page is not None or limit is not None:
+        safe_page = page or 1
+        safe_limit = limit or 20
+        total = query.count()
+        offset = (safe_page - 1) * safe_limit
+        products = query.offset(offset).limit(safe_limit).all()
+        has_next = (offset + safe_limit) < total
+        return PaginatedProductResponse(
+            items=[ProductResponse.model_validate(p) for p in products],
+            page=safe_page,
+            limit=safe_limit,
+            total=total,
+            has_next=has_next,
+        )
+
+    products = query.all()
     return [ProductResponse.model_validate(p) for p in products]
 
 
@@ -29,6 +66,7 @@ def search_product_catalog(q: str = '', db: Session = Depends(get_db)) -> List[P
     """Find products matching keyword text in their name, description, or category."""
     products = search_products(db, q)
     return [ProductResponse.model_validate(p) for p in products]
+
 
 
 @router.get(
