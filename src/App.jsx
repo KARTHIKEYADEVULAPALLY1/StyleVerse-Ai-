@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { Navigate, Route, Routes, useLocation, Link } from 'react-router-dom'
 import { Loader2, AlertTriangle, Globe } from 'lucide-react'
+import { Analytics } from '@vercel/analytics/react'
 import Reveal from './components/ui/Reveal'
 import { ThemeProvider } from './context/ThemeContext'
 import { AuthProvider } from './context/AuthContext'
@@ -292,6 +293,7 @@ export default function App() {
                     <Route path="/signup" element={<LoginPage initialMode="signup" />} />
                   </Routes>
                 </div>
+                <Analytics />
               </CartProvider>
             </WishlistProvider>
           </AuthProvider>
