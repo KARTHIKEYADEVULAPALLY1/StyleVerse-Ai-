@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from typing import List
 
-from sqlalchemy import Float, Integer, JSON, String, Text
+from sqlalchemy import Boolean, Float, Integer, JSON, String, Text
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 try:
@@ -28,10 +28,23 @@ class Product(Base):
     store: Mapped[str] = mapped_column(String(100), nullable=False)
     colors: Mapped[List[str]] = mapped_column(JSON, default=list, nullable=False)
     sizes: Mapped[List[str]] = mapped_column(JSON, default=list, nullable=False)
+    # Normalized metadata fields
+
+    subcategory: Mapped[str | None] = mapped_column(String(100), nullable=True)
+    target_gender: Mapped[str | None] = mapped_column(String(50), nullable=True, default='Unisex')
+    styles: Mapped[List[str]] = mapped_column(JSON, default=list, nullable=False)
+    occasions: Mapped[List[str]] = mapped_column(JSON, default=list, nullable=False)
+    materials: Mapped[List[str]] = mapped_column(JSON, default=list, nullable=False)
+    seasons: Mapped[List[str]] = mapped_column(JSON, default=list, nullable=False)
+    normalized_colors: Mapped[List[str]] = mapped_column(JSON, default=list, nullable=False)
+
     embedding: Mapped[List[float] | str | None] = mapped_column(
         Vector(64) if Vector is not None else Text,
         nullable=True,
     )
+    # Soft-visibility flag: ingested/legacy products can be hidden without deletion.
+    is_active: Mapped[bool] = mapped_column(Boolean, nullable=False, default=True)
+
 
     wishlist_items: Mapped[list['WishlistItem']] = relationship(
         'WishlistItem',

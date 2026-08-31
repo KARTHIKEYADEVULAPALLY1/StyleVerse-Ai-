@@ -1,0 +1,65 @@
+{
+  "merchant": "ajio",
+  "products": [
+    {
+      "external_product_id": "AJI-3001",
+      "name": "Urban Denim Jacket",
+      "brand": "Levis",
+      "category": "Jackets",
+      "description": "Classic denim jacket with a regular fit, exclusive on Ajio.",
+      "price": 3799.0,
+      "currency": "INR",
+      "image_url": "https://images.unsplash.com/photo-1551537482-f2075a1d41f2?w=400&q=80",
+      "product_url": "https://www.ajio.com/p/AJI-3001",
+      "availability": "in_stock",
+      "rating": 4.5,
+      "colors": ["Blue"],
+      "sizes": ["S", "M", "L"]
+    },
+    {
+      "external_product_id": "AJI-3002",
+      "name": "Oversized Graphic Hoodie",
+      "brand": "H&M",
+      "category": "Hoodies",
+      "description": "Relaxed oversized hoodie with graphic print, available on Ajio.",
+      "price": 1199.0,
+      "currency": "INR",
+      "image_url": "https://images.unsplash.com/photo-1556821840-3a63f95609a7?w=400&q=80",
+      "product_url": "https://www.ajio.com/p/AJI-3002",
+      "availability": "in_stock",
+      "rating": 4.4,
+      "colors": ["Black", "Gray"],
+      "sizes": ["M", "L", "XL"]
+    },
+    {
+      "external_product_id": "AJI-3003",
+      "name": "Minimalist Watch",
+      "brand": "Daniel Wellington",
+      "category": "Accessories",
+      "description": "Elegant minimalist watch with silver mesh strap.",
+      "price": 8499.0,
+      "currency": "INR",
+      "image_url": "https://images.unsplash.com/photo-1524592094714-0f0654e20314?w=400&q=80",
+      "product_url": "https://www.ajio.com/p/AJI-3003",
+      "availability": "in_stock",
+      "rating": 4.6,
+      "colors": ["Silver"],
+      "sizes": ["One Size"]
+    },
+    {
+      "external_product_id": "AJI-3004",
+      "name": "Knitted Beanie Cap",
+      "brand": "Adidas",
+      "category": "Accessories",
+      "description": "Warm knitted beanie with embroidered logo for winter layering.",
+      "price": 999.0,
+      "currency": "INR",
+      "image_url": "https://images.unsplash.com/photo-1576871337622-98d48d1cf531?w=400&q=80",
+      "product_url": "https://www.ajio.com/p/AJI-3004",
+      "availability": "in_stock",
+      "rating": 4.1,
+      "colors": ["Black", "Navy"],
+      "sizes": ["One Size"]
+    }
+  ]
+}

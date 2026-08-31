@@ -1,0 +1,65 @@
+{
+  "merchant": "myntra",
+  "products": [
+    {
+      "external_product_id": "MYN-2001",
+      "name": "Classic White Sneakers",
+      "brand": "Nike",
+      "category": "Footwear",
+      "description": "White casual sneakers with padded collar, listed on Myntra Fashion.",
+      "price": 4799.0,
+      "currency": "INR",
+      "image_url": "https://images.unsplash.com/photo-1542291026-7eec264c27ff?w=400&q=80",
+      "product_url": "https://www.myntra.com/shoes/MYN-2001",
+      "availability": "in_stock",
+      "rating": 4.6,
+      "colors": ["White"],
+      "sizes": ["6", "7", "8", "9"]
+    },
+    {
+      "external_product_id": "MYN-2002",
+      "name": "Urban Denim Jacket",
+      "brand": "Levis",
+      "category": "Jackets",
+      "description": "Mid-wash denim jacket with classic trucker silhouette and button closure.",
+      "price": 3999.0,
+      "currency": "INR",
+      "image_url": "https://images.unsplash.com/photo-1551537482-f2075a1d41f2?w=400&q=80",
+      "product_url": "https://www.myntra.com/jackets/MYN-2002",
+      "availability": "in_stock",
+      "rating": 4.4,
+      "colors": ["Blue", "Black"],
+      "sizes": ["S", "M", "L", "XL"]
+    },
+    {
+      "external_product_id": "MYN-2003",
+      "name": "Floral Summer Midi Dress",
+      "brand": "Vero Moda",
+      "category": "Dresses",
+      "description": "Breezy floral midi dress with adjustable straps for warm days.",
+      "price": 2499.0,
+      "currency": "INR",
+      "image_url": "https://images.unsplash.com/photo-1572804013309-59a88b7e92f1?w=400&q=80",
+      "product_url": "https://www.myntra.com/dresses/MYN-2003",
+      "availability": "in_stock",
+      "rating": 4.2,
+      "colors": ["Blue", "Cream"],
+      "sizes": ["XS", "S", "M", "L"]
+    },
+    {
+      "external_product_id": "MYN-2004",
+      "name": "Slim Fit Chinos",
+      "brand": "Uniqlo",
+      "category": "Trousers",
+      "description": "Tailored slim-fit chinos in a neutral tone for smart casual outfits.",
+      "price": 1899.0,
+      "currency": "INR",
+      "image_url": "https://images.unsplash.com/photo-1473966968600-fa801b869a1a?w=400&q=80",
+      "product_url": "https://www.myntra.com/trousers/MYN-2004",
+      "availability": "in_stock",
+      "rating": 4.3,
+      "colors": ["Sand", "Navy"],
+      "sizes": ["S", "M", "L", "XL"]
+    }
+  ]
+}

@@ -89,3 +89,16 @@ coverage/
 *.temp
 *.bak
 *.orig
+
+# ─── Local dev / debug artifacts (session scratch files) ────────
+build_out.txt
+frontend_status.txt
+verify_reco.py
+backend/backend-server.txt
+backend/dbg.txt
+backend/test_user_photo.png
+backend/test_result.jpg
+test_output.txt
+test_run_*.txt
+pytest_pid.txt
+page.html

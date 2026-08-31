@@ -54,6 +54,8 @@ class UserResponse(BaseModel):
     name: str
     email: str
     created_at: datetime
+    # Additive role flag; defaults keep older clients working unchanged.
+    is_admin: bool = False
 
 
 class TokenResponse(BaseModel):

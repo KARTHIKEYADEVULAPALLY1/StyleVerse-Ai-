@@ -1,8 +1,10 @@
 import { useState } from 'react'
-import { ArrowLeft, LockKeyhole, Mail, Sparkles, User, Loader2 } from 'lucide-react'
+import { ArrowLeft, Eye, EyeOff, LockKeyhole, Mail, Sparkles, User, Loader2 } from 'lucide-react'
 import { useLocation, useNavigate } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext'
 import { loginUser, signupUser } from '../services/authService'
+import { useToast } from './ui/Toast'
+import { getErrorMessage } from '../services/apiClient'
 import Reveal from './ui/Reveal'
 import MagneticButton from './ui/MagneticButton'
 
@@ -10,25 +12,24 @@ export default function LoginPage({ initialMode = 'login' }) {
   const navigate = useNavigate()
   const location = useLocation()
   const { loginSuccess, signup, isAuthenticated } = useAuth()
+  const toast = useToast()
   // Preserve the page the user was viewing when they were redirected to login.
   const redirectTo = location.state?.from || '/'
   const [mode, setMode] = useState(initialMode) // 'login' | 'signup'
   const [form, setForm] = useState({ name: '', email: '', password: '' })
   const [error, setError] = useState('')
-  const [success, setSuccess] = useState('')
   const [loading, setLoading] = useState(false)
+  const [showPassword, setShowPassword] = useState(false)
 
   const handleChange = (event) => {
     const { name, value } = event.target
     setForm((prev) => ({ ...prev, [name]: value }))
     if (error) setError('')
-    if (success) setSuccess('')
   }
 
   const handleSubmit = async (event) => {
     event.preventDefault()
     setError('')
-    setSuccess('')
 
     const { name, email, password } = form
 
@@ -48,13 +49,13 @@ export default function LoginPage({ initialMode = 'login' }) {
 
       try {
         const { access_token, user: userData } = await loginUser({ email: email.trim(), password })
-        setSuccess('Logged in successfully! Redirecting...')
+        toast.success('Logged in successfully! Redirecting...')
         loginSuccess(access_token, userData)
         setTimeout(() => {
           navigate(redirectTo)
         }, 800)
       } catch (err) {
-        setError(err.message || 'Login failed. Please try again.')
+        setError(getErrorMessage(err))
       } finally {
         setLoading(false)
       }
@@ -77,13 +78,13 @@ export default function LoginPage({ initialMode = 'login' }) {
 
     try {
       const { access_token, user: userData } = await signupUser({ name: name.trim(), email: email.trim(), password })
-      setSuccess('Account created successfully! Redirecting...')
+      toast.success('Account created successfully! Redirecting...')
       signup(access_token, userData)
       setTimeout(() => {
-        navigate(redirectTo)
+        navigate('/onboarding', { state: { from: redirectTo } })
       }, 800)
     } catch (err) {
-      setError(err.message || 'Signup failed. Please try again.')
+      setError(getErrorMessage(err))
     } finally {
       setLoading(false)
     }
@@ -141,13 +142,11 @@ export default function LoginPage({ initialMode = 'login' }) {
                   onClick={() => {
                     setMode('login')
                     setError('')
-                    setSuccess('')
                   }}
-                  className={`flex-1 rounded-xl py-2 text-xs font-semibold uppercase tracking-wider transition-all ${
-                    mode === 'login'
-                      ? 'bg-gradient-to-r from-primary to-secondary text-white shadow-glow'
-                      : 'text-gray-400 hover:text-white'
-                  }`}
+                  className={`flex-1 rounded-xl py-2 text-xs font-semibold uppercase tracking-wider transition-all ${mode === 'login'
+                    ? 'bg-gradient-to-r from-primary to-secondary text-white shadow-glow'
+                    : 'text-gray-400 hover:text-white'
+                    }`}
                 >
                   Sign In
                 </button>
@@ -156,13 +155,11 @@ export default function LoginPage({ initialMode = 'login' }) {
                   onClick={() => {
                     setMode('signup')
                     setError('')
-                    setSuccess('')
                   }}
-                  className={`flex-1 rounded-xl py-2 text-xs font-semibold uppercase tracking-wider transition-all ${
-                    mode === 'signup'
-                      ? 'bg-gradient-to-r from-primary to-secondary text-white shadow-glow'
-                      : 'text-gray-400 hover:text-white'
-                  }`}
+                  className={`flex-1 rounded-xl py-2 text-xs font-semibold uppercase tracking-wider transition-all ${mode === 'signup'
+                    ? 'bg-gradient-to-r from-primary to-secondary text-white shadow-glow'
+                    : 'text-gray-400 hover:text-white'
+                    }`}
                 >
                   Sign Up
                 </button>
@@ -220,7 +217,7 @@ export default function LoginPage({ initialMode = 'login' }) {
                   <div className="flex items-center gap-3 rounded-2xl border border-white/10 bg-slate-950/20 px-4 py-3 focus-within:border-primary/60">
                     <LockKeyhole className="w-4 h-4 text-gray-400" />
                     <input
-                      type="password"
+                      type={showPassword ? 'text' : 'password'}
                       name="password"
                       value={form.password}
                       onChange={handleChange}
@@ -228,18 +225,20 @@ export default function LoginPage({ initialMode = 'login' }) {
                       disabled={loading}
                       className="w-full bg-transparent text-sm text-white placeholder:text-gray-400 focus:outline-none disabled:opacity-50"
                     />
+                    <button
+                      type="button"
+                      onClick={() => setShowPassword((prev) => !prev)}
+                      aria-label={showPassword ? 'Hide password' : 'Show password'}
+                      className="shrink-0 text-gray-400 hover:text-white transition-colors"
+                    >
+                      {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                    </button>
                   </div>
                 </label>
 
                 {error && (
                   <div className="rounded-2xl border border-red-500/30 bg-red-500/10 px-4 py-3 text-sm text-red-200">
                     {error}
-                  </div>
-                )}
-
-                {success && (
-                  <div className="rounded-2xl border border-green-500/30 bg-green-500/10 px-4 py-3 text-sm text-green-300">
-                    {success}
                   </div>
                 )}
 

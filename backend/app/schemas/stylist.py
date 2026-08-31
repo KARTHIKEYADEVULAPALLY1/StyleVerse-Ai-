@@ -18,3 +18,17 @@ class StylistRecommendationResponse(BaseModel):
     color: str
     budget: float
     recommendation: list[ProductResponse] = Field(default_factory=list)
+    outfit: 'OutfitResponse'
+
+
+class OutfitItem(BaseModel):
+    role: str
+    product_id: int
+    product: ProductResponse
+
+
+class OutfitResponse(BaseModel):
+    occasion: str
+    style: str
+    total_price: float
+    items: list[OutfitItem] = Field(default_factory=list)

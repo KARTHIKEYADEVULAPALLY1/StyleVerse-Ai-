@@ -2,11 +2,15 @@ import { createContext, useContext, useEffect, useMemo, useState } from 'react'
 import { useAuth } from './AuthContext'
 import { addCartItem, fetchCart, removeCartItem, updateCartItem } from '../services/cartService'
 import { createOrder } from '../services/orderService'
+import { trackCartAdded, trackCartRemoved } from '../services/analyticsService'
+import { useToast } from '../components/ui/Toast'
+import { getErrorMessage } from '../services/apiClient'
 
 const CartContext = createContext(null)
 
 export function CartProvider({ children }) {
   const { token, isAuthenticated } = useAuth()
+  const toast = useToast()
   const [items, setItems] = useState([])
   const [loading, setLoading] = useState(false)
   const [placingOrder, setPlacingOrder] = useState(false)
@@ -25,8 +29,9 @@ export function CartProvider({ children }) {
       const data = await fetchCart(currentToken)
       setItems(Array.isArray(data) ? data : [])
     } catch (err) {
+      // Silent failure on initial load — don't spam toasts
       setItems([])
-      setError(err.message || 'Unable to load cart.')
+      setError(null)
     } finally {
       setLoading(false)
     }
@@ -72,6 +77,7 @@ export function CartProvider({ children }) {
     try {
       const payload = { product_id: Number(product.id), quantity: Number(quantity), selected_size: size }
       const savedItem = await addCartItem(token, payload)
+      trackCartAdded(savedItem.product_id, { quantity: Number(quantity), size })
       setItems((prev) => {
         const matchIndex = prev.findIndex(
           (item) => Number(item.product_id) === Number(savedItem.product_id) && item.selected_size === savedItem.selected_size
@@ -86,8 +92,10 @@ export function CartProvider({ children }) {
         return [...prev, savedItem]
       })
       setError(null)
+      toast.success('Added to cart')
     } catch (err) {
-      setError(err.message || 'Unable to add product to cart.')
+      setError(getErrorMessage(err))
+      toast.error(getErrorMessage(err))
     }
   }
 
@@ -118,7 +126,8 @@ export function CartProvider({ children }) {
       )
       setError(null)
     } catch (err) {
-      setError(err.message || 'Unable to update quantity.')
+      setError(getErrorMessage(err))
+      toast.error(getErrorMessage(err))
     }
   }
 
@@ -127,14 +136,17 @@ export function CartProvider({ children }) {
 
     try {
       await removeCartItem(token, Number(productId), { selected_size: size })
+      trackCartRemoved(productId)
       setItems((prev) =>
         prev.filter(
           (item) => !(Number(item.product_id) === Number(productId) && item.selected_size === size)
         )
       )
       setError(null)
+      toast.success('Removed from cart')
     } catch (err) {
-      setError(err.message || 'Unable to remove product from cart.')
+      setError(getErrorMessage(err))
+      toast.error(getErrorMessage(err))
     }
   }
 
@@ -149,8 +161,10 @@ export function CartProvider({ children }) {
       )
       setItems([])
       setError(null)
+      toast.success('Cart cleared')
     } catch (err) {
-      setError(err.message || 'Unable to clear cart.')
+      setError(getErrorMessage(err))
+      toast.error(getErrorMessage(err))
     }
   }
 
@@ -162,9 +176,11 @@ export function CartProvider({ children }) {
       setError(null)
       const createdOrder = await createOrder(token)
       setItems([])
+      toast.success('Order placed successfully')
       return createdOrder
     } catch (err) {
-      setError(err.message || 'Unable to place order.')
+      setError(getErrorMessage(err))
+      toast.error(getErrorMessage(err))
       return null
     } finally {
       setPlacingOrder(false)
@@ -194,10 +210,21 @@ export function CartProvider({ children }) {
 
 export function useCart() {
   const context = useContext(CartContext)
-
   if (!context) {
-    throw new Error('useCart must be used within CartProvider')
+    return {
+      items: [],
+      cartItems: [],
+      totalItems: 0,
+      grandTotal: 0,
+      loading: false,
+      placingOrder: false,
+      error: null,
+      addToCart: async () => {},
+      updateQuantity: async () => {},
+      removeFromCart: async () => {},
+      clearCart: async () => {},
+      placeOrder: async () => null,
+    }
   }
-
   return context
 }

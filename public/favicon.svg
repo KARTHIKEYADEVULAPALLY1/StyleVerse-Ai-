@@ -1,0 +1,21 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" fill="none">
+  <defs>
+    <linearGradient id="svGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#EC4899" />
+      <stop offset="50%" stop-color="#8B5CF6" />
+      <stop offset="100%" stop-color="#06B6D4" />
+    </linearGradient>
+    <radialGradient id="svGlow" cx="50%" cy="50%" r="50%">
+      <stop offset="0%" stop-color="#EC4899" stop-opacity="0.4"/>
+      <stop offset="100%" stop-color="#8B5CF6" stop-opacity="0"/>
+    </radialGradient>
+  </defs>
+  <!-- Glow Layer -->
+  <circle cx="50" cy="50" r="45" fill="url(#svGlow)"/>
+  <!-- Base Shield/Diamond Shape -->
+  <rect x="15" y="15" width="70" height="70" rx="20" fill="#0B0F19" stroke="url(#svGradient)" stroke-width="3"/>
+  <!-- Stylized Fashion 'S' & Sparkle -->
+  <path d="M62 32C59 28 53 27 47 28C38 29.5 34 35 35 41C36 48 42 50 49 52C58 54.5 64 57 65 64C66 72 58 78 48 77C40 76 35 71 33 66" stroke="url(#svGradient)" stroke-width="6" stroke-linecap="round" stroke-linejoin="round"/>
+  <!-- AI Sparkle -->
+  <path d="M68 22L70 28L76 30L70 32L68 38L66 32L60 30L66 28Z" fill="#00E5FF"/>
+</svg>

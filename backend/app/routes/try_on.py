@@ -10,7 +10,8 @@ from sqlalchemy.orm import Session
 from app.database import get_db
 from app.schemas.try_on import TryOnProcessRequest, TryOnProcessResponse, TryOnUploadResponse
 from app.services.try_on_service import save_try_on_upload
-from app.services.virtual_try_on_service import RESULTS_DIR, virtual_try_on_service
+from app.services.virtual_try_on_service import virtual_try_on_service
+from app.services.media_storage import media_storage
 
 router = APIRouter(prefix='/api/try-on', tags=['try-on'])
 
@@ -54,13 +55,10 @@ async def get_try_on_result(filename: str) -> FileResponse:
             detail='Invalid result image filename.',
         )
 
-    result_path = (RESULTS_DIR / filename).resolve()
-    if result_path.parent != RESULTS_DIR.resolve():
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail='Invalid result image path.',
-        )
-
+    try:
+        result_path = media_storage.get_path(f'results/{filename}')
+    except ValueError:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail='Invalid result image path.')
     if not result_path.is_file():
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,

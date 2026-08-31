@@ -1,4 +1,5 @@
-const API_BASE_URL = import.meta.env.VITE_TRYON_API_URL || 'http://127.0.0.1:8000/api/try-on'
+const ROOT_URL = (import.meta.env?.VITE_API_BASE_URL || 'http://127.0.0.1:8000').replace(/\/+$/, '')
+const API_BASE_URL = import.meta.env?.VITE_TRYON_API_URL || `${ROOT_URL}/api/try-on`
 
 export const MAX_TRYON_FILE_SIZE_BYTES = 5 * 1024 * 1024
 export const ALLOWED_TRYON_MIME_TYPES = ['image/jpeg', 'image/png']
@@ -19,7 +20,7 @@ export function validateTryOnFile(file) {
   return null
 }
 
-export async function uploadTryOnImage(file, { onProgress } = {}) {
+export async function uploadTryOnImage(file, { onProgress, timeout = 30000 } = {}) {
   const validationError = validateTryOnFile(file)
   if (validationError) {
     throw new Error(validationError)
@@ -30,6 +31,11 @@ export async function uploadTryOnImage(file, { onProgress } = {}) {
 
   return new Promise((resolve, reject) => {
     const xhr = new XMLHttpRequest()
+    const timer = setTimeout(() => {
+      xhr.abort()
+      reject(new Error('Request timed out. Please try again.'))
+    }, timeout)
+
     xhr.open('POST', `${API_BASE_URL}/upload`)
 
     xhr.upload.onprogress = (event) => {
@@ -39,6 +45,7 @@ export async function uploadTryOnImage(file, { onProgress } = {}) {
     }
 
     xhr.onload = () => {
+      clearTimeout(timer)
       let data = null
       try {
         data = JSON.parse(xhr.responseText)
@@ -55,7 +62,13 @@ export async function uploadTryOnImage(file, { onProgress } = {}) {
     }
 
     xhr.onerror = () => {
+      clearTimeout(timer)
       reject(new Error('Network error. Unable to connect to the upload server.'))
+    }
+
+    xhr.ontimeout = () => {
+      clearTimeout(timer)
+      reject(new Error('Request timed out. Please try again.'))
     }
 
     xhr.send(formData)

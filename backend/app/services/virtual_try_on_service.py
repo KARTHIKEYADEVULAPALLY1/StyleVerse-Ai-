@@ -2,7 +2,6 @@ from __future__ import annotations
 
 import os
 import re
-import uuid
 from abc import ABC, abstractmethod
 from dataclasses import dataclass
 from pathlib import Path
@@ -14,13 +13,10 @@ from app.models.product import Product
 from app.services.image_compositor import compose_try_on
 from app.services.product_service import get_product_by_id
 from app.services.try_on_service import UPLOADS_DIR
+from app.services.media_storage import media_storage, safe_filename
 
 UPLOAD_ID_PATTERN = re.compile(r'^[a-f0-9]{32}$')
 SAFE_FILENAME_PATTERN = re.compile(r'^[a-f0-9]{32}\.(jpg|jpeg|png)$', re.IGNORECASE)
-
-BASE_DIR = Path(__file__).resolve().parents[2]
-RESULTS_DIR = BASE_DIR / 'results'
-RESULTS_DIR.mkdir(parents=True, exist_ok=True)
 
 # When set to "stub", the service uses the placeholder processor.
 # When unset or set to "composite", the real image-compositing processor is used.
@@ -81,9 +77,10 @@ class CompositeVirtualTryOnProcessor(VirtualTryOnProcessor):
                 detail='Selected product does not have a catalog image.',
             )
 
-        result_id = uuid.uuid4().hex
-        output_filename = f'{result_id}.jpg'
-        output_path = RESULTS_DIR / output_filename
+        output_filename = safe_filename('.jpg')
+        media_key = f'results/{output_filename}'
+        output_path = media_storage.get_path(media_key)
+        output_path.parent.mkdir(parents=True, exist_ok=True)
 
         try:
             compose_try_on(
@@ -100,10 +97,14 @@ class CompositeVirtualTryOnProcessor(VirtualTryOnProcessor):
                 detail=f'Virtual try-on generation failed: {exc}',
             ) from exc
 
+        # The compositor wrote to the storage-managed local path. Other
+        # providers can materialize a temporary writable path in get_path.
         return TryOnProcessResult(
             status='completed',
             message='Virtual try-on generated successfully.',
             product_id=product.id,
+            # Keep the established stable API URL for clients while the bytes
+            # themselves are resolved through MediaStorage in the route.
             result_image=f'/api/try-on/results/{output_filename}',
         )
 

@@ -55,7 +55,8 @@ export default {
         'spin-slow': 'spin 12s linear infinite',
         'gradient': 'gradient 8s ease infinite',
         'shine': 'shine 3s ease infinite',
-        'rainbow': 'rainbow 8s ease infinite'
+        'rainbow': 'rainbow 8s ease infinite',
+        'shimmer': 'shimmer 2s ease-in-out infinite'
       },
       keyframes: {
         float: {
@@ -81,6 +82,10 @@ export default {
         rainbow: {
           '0%, 100%': { filter: 'hue-rotate(0deg)' },
           '50%': { filter: 'hue-rotate(30deg)' }
+        },
+        shimmer: {
+          '0%': { transform: 'translateX(-100%)' },
+          '100%': { transform: 'translateX(100%)' }
         }
       },
       backdropBlur: {

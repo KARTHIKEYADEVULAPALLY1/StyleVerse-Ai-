@@ -47,11 +47,39 @@ def create_user(db: Session, user_data: UserCreate) -> User:
         name=user_data.name.strip(),
         email=user_data.email.strip().lower(),
         hashed_password=hashed_password,
+        is_admin=is_admin_email(user_data.email),
     )
     db.add(db_user)
     db.commit()
     db.refresh(db_user)
     return db_user
+
+
+def get_admin_emails() -> set[str]:
+    """Emails granted the admin role, from the ``ADMIN_EMAILS`` env var."""
+    raw = os.getenv('ADMIN_EMAILS', 'admin@styleverse.ai')
+    return {entry.strip().lower() for entry in raw.split(',') if entry.strip()}
+
+
+def is_admin_email(email: str) -> bool:
+    return (email or '').strip().lower() in get_admin_emails()
+
+
+def promote_env_admins(db: Session) -> int:
+    """Idempotently grant the admin role to existing users listed in
+    ``ADMIN_EMAILS``. Existing users are never demoted. Returns promoted count.
+    """
+    admins = get_admin_emails()
+    if not admins:
+        return 0
+    promoted = 0
+    for user in db.query(User).filter(User.is_admin.is_(False)).all():
+        if user.email.lower() in admins:
+            user.is_admin = True
+            promoted += 1
+    if promoted:
+        db.commit()
+    return promoted
 
 
 def authenticate_user(db: Session, email: str, password: str) -> User | None:
