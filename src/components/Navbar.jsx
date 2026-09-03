@@ -63,6 +63,12 @@ export default function Navbar() {
   const handleAnchorClick = (event, href) => {
     event.preventDefault()
     setMobileOpen(false)
+    if (href.startsWith('/')) {
+      if (routeName !== href) {
+        navigate(href)
+      }
+      return
+    }
     if (routeName !== '/') {
       navigate('/')
       // Wait for the home page to mount before scrolling to the section.
@@ -189,6 +195,16 @@ export default function Navbar() {
 
               {/* Search Icon */}
               <MagneticButton
+                onClick={() => {
+                  if (routeName !== '/') {
+                    navigate('/')
+                    window.setTimeout(() => {
+                      document.getElementById('ai-search')?.scrollIntoView({ behavior: 'smooth' })
+                    }, 150)
+                  } else {
+                    document.getElementById('ai-search')?.scrollIntoView({ behavior: 'smooth' })
+                  }
+                }}
                 aria-label="Search products"
                 className="hidden sm:flex w-10 h-10 rounded-full glass dark:glass items-center justify-center"
               >

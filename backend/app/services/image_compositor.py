@@ -12,6 +12,7 @@ and blended over the torso region of the user photo — not a placeholder.
 from __future__ import annotations
 
 import io
+import hashlib
 import logging
 from pathlib import Path
 
@@ -61,6 +62,20 @@ def _load_image_from_bytes(data: bytes) -> Image.Image:
             status_code=status.HTTP_502_BAD_GATEWAY,
             detail='Product image could not be decoded.',
         ) from exc
+
+
+def _make_demo_garment(product_name: str) -> Image.Image:
+    """Create a deterministic garment card when a remote catalog image is unavailable."""
+    digest = hashlib.sha256(product_name.encode('utf-8')).digest()
+    base = (digest[0] // 2 + 40, digest[1] // 2 + 40, digest[2] // 2 + 40, 255)
+    accent = (digest[3], digest[4], digest[5], 255)
+    garment = Image.new('RGBA', (600, 720), base)
+    draw = ImageDraw.Draw(garment)
+    draw.rounded_rectangle((8, 8, 591, 711), radius=70, outline=accent, width=14)
+    draw.polygon([(120, 40), (240, 8), (300, 125), (360, 8), (480, 40), (590, 210), (500, 270), (450, 180), (450, 710), (150, 710), (150, 180), (100, 270), (10, 210)], fill=base)
+    draw.line((240, 20, 300, 125, 360, 20), fill=accent, width=10)
+    draw.text((300, 620), 'STYLEVERSE DEMO', fill=accent, anchor='mm')
+    return garment
 
 
 MIN_USER_IMAGE_SIZE = (200, 300)
@@ -134,12 +149,18 @@ def compose_try_on(
       6. Save the output to ``output_path`` and return it.
     """
     user_rgb = _load_user_image(user_image_path)
-    product_data = _download_product_image(product_image_url)
-    product_rgba = _load_image_from_bytes(product_data)
-
-    # Normalize garment orientation - some product images are landscape;
-    # we keep them as-is and resize preserving aspect ratio later.
-    garment = _extract_garment(product_rgba)
+    try:
+        product_data = _download_product_image(product_image_url)
+        product_rgba = _load_image_from_bytes(product_data)
+        # Normalize garment orientation - some product images are landscape;
+        # we keep them as-is and resize preserving aspect ratio later.
+        garment = _extract_garment(product_rgba)
+    except HTTPException as exc:
+        # The catalog currently uses remote images and there is no configured
+        # production try-on model. Keep the local MVP deterministic and usable
+        # when that optional remote dependency is unavailable.
+        logger.warning('Using deterministic demo garment for "%s": %s', product_name, exc.detail)
+        garment = _make_demo_garment(product_name)
 
     user_width, user_height = user_rgb.size
 

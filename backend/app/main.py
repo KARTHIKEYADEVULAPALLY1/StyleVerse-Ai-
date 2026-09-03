@@ -15,6 +15,8 @@ from fastapi.staticfiles import StaticFiles
 from fastapi.middleware.cors import CORSMiddleware
 from starlette.exceptions import HTTPException as StarletteHTTPException
 
+from sqlalchemy import text
+
 from app.database import Base, SessionLocal, engine, ensure_pgvector_extension
 from app.db_migrations import run_additive_migrations
 from app.models.cart import Cart, CartItem  # noqa: F401
@@ -144,14 +146,24 @@ app.include_router(style_profile_router)
 app.include_router(stylist_router)
 app.include_router(try_on_router)
 
-origins = os.getenv(
-    'CORS_ORIGINS',
-    'http://localhost:5173,http://127.0.0.1:5173,http://localhost:3000,http://127.0.0.1:3000',
-).split(',')
+dev_origins = os.getenv('FRONTEND_URL_DEV', 'http://localhost:5173,http://127.0.0.1:5173,http://localhost:3000,http://127.0.0.1:3000')
+preview_origins = os.getenv('FRONTEND_URL_PREVIEW', 'http://localhost:4173,http://127.0.0.1:4173')
+prod_origins = os.getenv('FRONTEND_URL_PROD', '')
+
+origins = []
+for origin in dev_origins.split(','):
+    if origin.strip():
+        origins.append(origin.strip())
+for origin in preview_origins.split(','):
+    if origin.strip():
+        origins.append(origin.strip())
+for origin in prod_origins.split(','):
+    if origin.strip():
+        origins.append(origin.strip())
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=[origin.strip() for origin in origins if origin.strip()],
+    allow_origins=origins,
     allow_credentials=True,
     allow_methods=['*'],
     allow_headers=['*'],
@@ -160,7 +172,21 @@ app.add_middleware(
 
 @app.get('/api/health')
 def health_check() -> dict:
-    return {'status': 'ok'}
+    """Health check endpoint that verifies database connectivity.
+    
+    Returns:
+        200: Database is healthy
+        503: Database is unavailable
+    """
+    try:
+        db = SessionLocal()
+        try:
+            db.execute(text('SELECT 1'))
+        finally:
+            db.close()
+        return {'status': 'healthy'}
+    except Exception:
+        return JSONResponse(status_code=503, content={'status': 'unhealthy'})
 
 
 @app.get('/')
@@ -170,6 +196,7 @@ def root() -> dict:
 
 @app.on_event('startup')
 def startup_event() -> None:
+    logger = logging.getLogger(__name__)
     ensure_uploads_directory()
     try:
         ensure_pgvector_extension()
@@ -183,10 +210,11 @@ def startup_event() -> None:
             promote_env_admins(db)
         finally:
             db.close()
-    except Exception:
-        # Keep app startup resilient until the database is available.
-        # This allows the health endpoint to remain reachable while configuration is being finalized.
-        pass
+    except Exception as e:
+        # Log the error clearly so operators can see database initialization failed.
+        # The app still starts to allow the health endpoint to report status,
+        # but database-dependent features won't work until resolved.
+        logger.error("Database initialization failed during startup: %s", e)
 
 
 @app.on_event('startup')

@@ -45,6 +45,8 @@ def is_safe_redirect_url(url: Any) -> bool:
     return (
         parsed.scheme.lower() in ALLOWED_REDIRECT_SCHEMES
         and bool(parsed.hostname)
+        and parsed.hostname.lower() != 'example.com'
+        and not parsed.hostname.lower().endswith('.example.com')
     )
 
 # Fallback deep links for legacy offers identified only by ``(product, store)``.
@@ -61,7 +63,7 @@ def resolve_outbound_url(offer: Any, product_name: str | None = None) -> Optiona
     """Return the best available external URL for a merchant offer."""
     product_url = getattr(offer, 'product_url', None)
     if product_url:
-        return product_url
+        return product_url if is_safe_redirect_url(product_url) else None
 
     store_slug = str(getattr(offer, 'store', '') or '').strip().lower()
     template = STORE_SEARCH_URLS.get(store_slug)

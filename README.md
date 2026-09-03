@@ -59,9 +59,9 @@ StyleVerse AI unifies discovery into a single cohesive experience:
 - **Merchant Sync Dashboard**: Sync state with external e-commerce feeds (including Etsy Open API v3 connector).
 - **Analytics Dashboard**: Real-time monitoring of engagement, views, click-through rates, and revenue metrics.
 
-### 🛒 Full E-Commerce Experience
+### 🛒 Saved Shopping Experience
 - **JWT Authentication**: Secure signup, login, session persistence, and role-based admin elevation.
-- **Persistent Wishlist & Shopping Cart**: Server-synced state with multi-item checkout and order generation.
+- **Persistent Wishlist & Shopping Cart**: Server-synced saved items for comparing products before following a retailer's Shop Now link.
 
 ---
 
@@ -190,7 +190,7 @@ StyleVerse-AI/
 │   │   ├── AdminAnalyticsDashboard.jsx# Telemetry & performance metrics
 │   │   ├── CartSection.jsx       # Shopping cart & quantity management
 │   │   ├── MultiStoreDiscovery.jsx # Multi-store discovery & filter matrix
-│   │   ├── OrderConfirmation.jsx # Post-checkout receipt
+│   │   ├── OrderConfirmation.jsx # Historical order detail view
 │   │   ├── OrderHistory.jsx      # Historical orders view
 │   │   ├── PriceComparison.jsx   # Store offer price comparison
 │   │   ├── ProductDetails.jsx    # Product specification & store offers

@@ -16,7 +16,10 @@ from app.schemas.user import UserCreate
 BASE_DIR = Path(__file__).resolve().parents[2]
 load_dotenv(BASE_DIR / '.env')
 
-JWT_SECRET_KEY: str = os.getenv('JWT_SECRET_KEY', 'styleverse_super_secret_jwt_key_change_me_in_production_2026')
+_jwt_secret: str | None = os.getenv('JWT_SECRET_KEY')
+if _jwt_secret is None:
+    raise ValueError("JWT_SECRET_KEY environment variable is not set. Please configure it in your .env file.")
+JWT_SECRET_KEY: str = _jwt_secret
 JWT_ALGORITHM: str = os.getenv('JWT_ALGORITHM', 'HS256')
 ACCESS_TOKEN_EXPIRE_MINUTES: int = int(os.getenv('ACCESS_TOKEN_EXPIRE_MINUTES', '1440'))
 

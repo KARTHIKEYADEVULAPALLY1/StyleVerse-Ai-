@@ -194,6 +194,7 @@ export default function ProductImage({
 
       {/* Image with fade-in transition */}
       <img
+        key={`${resolvedSrc || 'fallback'}-${retryCount}`}
         src={imageSrc}
         alt={alt}
         loading={shouldLoadEagerly ? 'eager' : 'lazy'}
@@ -207,22 +208,11 @@ export default function ProductImage({
                     ${className}
                     absolute inset-0 w-full h-full object-cover
                     transition-opacity duration-500 ease-out
-                    ${loadState === 'loaded' ? 'opacity-100' : 'opacity-0'}
+                    ${loadState === 'loaded' || loadState === 'error' ? 'opacity-100' : 'opacity-0'}
                 `}
         {...imgProps}
       />
 
-      {/* Error state with fallback (no spinner needed since fallback is shown) */}
-      {loadState === 'error' && (
-        <div
-          role="img"
-          aria-label={alt || 'Image unavailable'}
-          className="absolute inset-0 flex flex-col items-center justify-center text-center p-3 text-gray-500 dark:text-gray-400 bg-gradient-to-br from-gray-100 to-gray-200 dark:from-gray-800 dark:to-gray-900"
-        >
-          <ImageOff className="w-8 h-8 mb-2 opacity-60" />
-          <span className="text-xs font-medium opacity-60">Image unavailable</span>
-        </div>
-      )}
     </div>
   )
 }

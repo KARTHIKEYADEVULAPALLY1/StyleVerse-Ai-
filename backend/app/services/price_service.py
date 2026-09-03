@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from typing import Any
+from urllib.parse import quote_plus
 
 from sqlalchemy.orm import Session
 
@@ -17,6 +18,13 @@ STORE_OFFER_TEMPLATES = [
     {'store': 'Amazon', 'multiplier': 1.0, 'rating_offset': 0.0, 'availability': 'In Stock'},
     {'store': 'Flipkart', 'multiplier': 1.05, 'rating_offset': -0.15, 'availability': 'In Stock'},
 ]
+
+STORE_PRODUCT_SEARCH_URLS = {
+    'Ajio': 'https://www.ajio.com/search/?text={query}',
+    'Myntra': 'https://www.myntra.com/{query}',
+    'Amazon': 'https://www.amazon.in/s?k={query}',
+    'Flipkart': 'https://www.flipkart.com/search?q={query}',
+}
 
 
 def parse_currency_value(value: str | int | float | None) -> float:
@@ -52,6 +60,9 @@ def build_offer_rows(product: dict[str, Any]) -> list[dict[str, Any]]:
                 'currency': 'INR',
                 'availability': availability,
                 'rating': round(max(3.5, min(5.0, base_rating + template['rating_offset'])), 1),
+                'product_url': STORE_PRODUCT_SEARCH_URLS[template['store']].format(
+                    query=quote_plus(product['name'])
+                ),
             }
         )
 
@@ -70,7 +81,7 @@ def seed_product_offers(db: Session) -> None:
                 .first()
             )
             if existing:
-                for field in ['price', 'currency', 'availability', 'rating']:
+                for field in ['price', 'currency', 'availability', 'rating', 'product_url']:
                     setattr(existing, field, offer_data[field])
             else:
                 db.add(ProductOffer(**offer_data))

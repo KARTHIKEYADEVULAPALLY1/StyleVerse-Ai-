@@ -1,5 +1,9 @@
-const ROOT_URL = (import.meta.env?.VITE_API_BASE_URL || 'http://127.0.0.1:8000').replace(/\/+$/, '')
-const API_BASE_URL = import.meta.env?.VITE_PRODUCTS_API_URL || `${ROOT_URL}/api/products`
+import { ApiEndpoints, getApiBaseUrl } from '../config/api.js'
+
+const API_BASE_URL = ApiEndpoints.products()
+
+// Discovery API - construct from base
+const DISCOVERY_API_URL = `${getApiBaseUrl()}/api/discovery`
 
 async function apiFetch(path, options = {}) {
   try {
@@ -93,10 +97,6 @@ export function buildMerchantRedirectUrl(visitUrl) {
     return visitUrl
   }
 }
-
-const DISCOVERY_API_URL =
-  import.meta.env.VITE_DISCOVERY_API_URL ||
-  `${API_BASE_URL.replace(/\/api\/products\/?$/, '')}/api/discovery`
 
 /**
  * Multi-store discovery: search across merchants and get each product's

@@ -253,7 +253,9 @@ def test_feed_products_flow_through_normalization(seeded_db):
     ingest_external_products(seeded_db, report.products, merchant)
 
     product = (
-        seeded_db.query(Product).filter(Product.name == 'Court Sneakers').first()
+        seeded_db.query(Product)
+        .filter(Product.name == 'Court Sneakers', Product.brand == 'Riverstone')
+        .first()
     )
     assert product is not None
     assert product.category == 'Sneakers'

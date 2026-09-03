@@ -1,5 +1,6 @@
-const ROOT_URL = (import.meta.env?.VITE_API_BASE_URL || 'http://127.0.0.1:8000').replace(/\/+$/, '')
-const API_BASE_URL = import.meta.env?.VITE_PREFERENCES_API_URL || `${ROOT_URL}/api/preferences`
+import { ApiEndpoints } from '../config/api.js'
+
+const API_BASE_URL = ApiEndpoints.preferences()
 
 async function apiFetch(token, options = {}) {
   const response = await fetch(API_BASE_URL, {

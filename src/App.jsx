@@ -38,6 +38,7 @@ import { fetchRecommendations } from './services/recommendationService'
 import { trackSearch } from './services/analyticsService'
 import { filterProducts, priceOptions } from './data/products'
 import { useAuth } from './context/AuthContext'
+import StyleVerseAssistant from './components/StyleVerseAssistant'
 
 function HomePage() {
   const [query, setQuery] = useState('')
@@ -291,6 +292,7 @@ export default function App() {
                     <Route path="/login" element={<LoginPage initialMode="login" />} />
                     <Route path="/signup" element={<LoginPage initialMode="signup" />} />
                   </Routes>
+                  <StyleVerseAssistant />
                 </div>
               </CartProvider>
             </WishlistProvider>

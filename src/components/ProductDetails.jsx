@@ -1,9 +1,9 @@
 import { useEffect, useRef, useState } from 'react'
 import { motion } from 'framer-motion'
-import { ArrowLeft, ShoppingCart, Heart, Star, Tag, Truck, Loader2, AlertTriangle, LogIn, Sparkles } from 'lucide-react'
+import { ArrowLeft, ShoppingCart, Heart, Star, Tag, Truck, Loader2, AlertTriangle, LogIn, Sparkles, ExternalLink } from 'lucide-react'
 import { useLocation, useNavigate, useParams } from 'react-router-dom'
 import { parsePrice } from '../data/products'
-import { fetchProductById, fetchProducts } from '../services/productService'
+import { buildMerchantRedirectUrl, fetchProductById, fetchProducts } from '../services/productService'
 import { trackProductView } from '../services/analyticsService'
 import { useAuth } from '../context/AuthContext'
 import { useWishlist } from '../context/WishlistContext'
@@ -202,6 +202,13 @@ export default function ProductDetails() {
     navigate('/login', { state: { from: location.pathname } })
   }
 
+  const shopOffer = product?.offers?.find(
+    (offer) => String(offer.availability || '').toLowerCase() === 'in stock' && (offer.visit_url || offer.product_url)
+  )
+  const shopUrl = shopOffer
+    ? shopOffer.product_url || buildMerchantRedirectUrl(shopOffer.visit_url)
+    : null
+
   if (loading) {
     return (
       <section className="relative py-24 overflow-hidden">
@@ -347,6 +354,17 @@ export default function ProductDetails() {
               </div>
 
               <div className="mt-8 flex flex-col sm:flex-row gap-3">
+                {shopUrl && (
+                  <a
+                    href={shopUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="flex-1 inline-flex items-center justify-center gap-2 px-6 py-3 rounded-2xl btn-fashion text-white font-semibold shadow-glow min-h-[48px]"
+                  >
+                    <ExternalLink className="w-4 h-4" />
+                    Shop Now at {shopOffer.merchant_name || shopOffer.store}
+                  </a>
+                )}
                 <MagneticButton
                   onClick={handleCartClick}
                   className="flex-1 px-6 py-3 rounded-2xl btn-fashion text-white font-semibold shadow-glow"

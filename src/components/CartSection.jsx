@@ -1,14 +1,12 @@
 import { useState } from 'react'
-import { Minus, Plus, ShoppingBag, Trash2, ArrowRight, Package, Loader2, ShoppingBasket } from 'lucide-react'
+import { Minus, Plus, ShoppingBag, Trash2, ArrowRight, Package, ShoppingBasket } from 'lucide-react'
 import { motion, AnimatePresence } from 'framer-motion'
-import { useNavigate } from 'react-router-dom'
 import { useCart } from '../context/CartContext'
 import Reveal from './ui/Reveal'
 import MagneticButton from './ui/MagneticButton'
 import ProductImage from './ui/ProductImage'
 
 export default function CartSection() {
-  const navigate = useNavigate()
   const {
     cartItems,
     totalItems,
@@ -16,8 +14,6 @@ export default function CartSection() {
     updateQuantity,
     removeFromCart,
     clearCart,
-    placeOrder,
-    placingOrder,
     error,
   } = useCart()
 
@@ -39,14 +35,6 @@ export default function CartSection() {
       await removeFromCart(item.productId, item.size)
     } finally {
       setUpdatingKey(null)
-    }
-  }
-
-  const handlePlaceOrder = async () => {
-    if (placingOrder) return
-    const createdOrder = await placeOrder()
-    if (createdOrder?.id) {
-      navigate(`/order/${createdOrder.id}`)
     }
   }
 
@@ -79,7 +67,7 @@ export default function CartSection() {
                 </motion.div>
                 <h3 className="font-display text-3xl font-bold mb-3">Your cart is empty</h3>
                 <p className="text-gray-600 dark:text-gray-300 max-w-md mx-auto mb-8">
-                  Add some pieces you love and they will appear here ready for checkout.
+                  Add some pieces you love and they will appear here while you compare retailer options.
                 </p>
                 <MagneticButton
                   onClick={handleContinueShopping}
@@ -175,7 +163,7 @@ export default function CartSection() {
                           <button
                             type="button"
                             onClick={() => handleRemoveItem(item)}
-                            disabled={isUpdating || placingOrder}
+                            disabled={isUpdating}
                             className="inline-flex items-center gap-1.5 text-sm text-red-400 hover:text-red-300 disabled:opacity-40 transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary shrink-0"
                             aria-label={`Remove ${item.product.name} from cart`}
                           >
@@ -202,7 +190,7 @@ export default function CartSection() {
                             <button
                               type="button"
                               onClick={() => handleUpdateQuantity(item, -1)}
-                              disabled={isUpdating || placingOrder || item.quantity <= 1}
+                              disabled={isUpdating || item.quantity <= 1}
                               className="w-9 h-9 rounded-full glass dark:glass flex items-center justify-center hover:bg-white/10 dark:hover:bg-white/10 disabled:opacity-40 disabled:cursor-not-allowed transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
                               aria-label={`Decrease quantity of ${item.product.name}`}
                             >
@@ -223,7 +211,7 @@ export default function CartSection() {
                             <button
                               type="button"
                               onClick={() => handleUpdateQuantity(item, 1)}
-                              disabled={isUpdating || placingOrder}
+                              disabled={isUpdating}
                               className="w-9 h-9 rounded-full glass dark:glass flex items-center justify-center hover:bg-white/10 dark:hover:bg-white/10 disabled:opacity-30 disabled:cursor-not-allowed transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
                               aria-label={`Increase quantity of ${item.product.name}`}
                             >
@@ -298,23 +286,9 @@ export default function CartSection() {
                 </div>
               </div>
 
-              <MagneticButton
-                onClick={handlePlaceOrder}
-                className="mt-6 w-full px-6 py-3 rounded-2xl bg-gradient-to-r from-primary to-secondary text-white font-semibold shadow-glow disabled:opacity-70"
-                disabled={placingOrder}
-              >
-                {placingOrder ? (
-                  <>
-                    <Loader2 className="w-4 h-4 animate-spin mr-2" />
-                    Placing Order…
-                  </>
-                ) : (
-                  <>
-                    Place Order
-                    <ArrowRight className="w-4 h-4 ml-2" />
-                  </>
-                )}
-              </MagneticButton>
+              <p className="mt-6 text-center text-xs leading-relaxed text-gray-500 dark:text-gray-400">
+                Checkout and payment happen securely on the retailer&apos;s site after selecting Shop Now from a product.
+              </p>
             </motion.div>
           </div>
         </div>

@@ -21,6 +21,8 @@ import ProductSkeleton from './ui/ProductSkeleton'
 import { EmptyState, ErrorState } from './ui/ProductState'
 import { fetchDiscovery } from '../services/productService'
 import ProductImage from './ui/ProductImage'
+import Navbar from './Navbar'
+import Footer from './Footer'
 
 const PAGE_SIZE = 20
 
@@ -332,12 +334,15 @@ export default function MultiStoreDiscovery() {
   }
 
   return (
-    <section className="min-h-screen relative overflow-hidden">
-      <div className="absolute inset-0 pointer-events-none">
-        <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[700px] h-[500px] bg-primary/10 blur-[120px] rounded-full" />
-      </div>
+    <>
+      <Navbar />
+      <main className="relative z-10">
+        <section className="min-h-screen relative overflow-hidden">
+          <div className="absolute inset-0 pointer-events-none">
+            <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[700px] h-[500px] bg-primary/10 blur-[120px] rounded-full" />
+          </div>
 
-      <div className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-28 pb-20">
+          <div className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-28 pb-20">
         {/* ===== Header ===== */}
         <Reveal className="text-center mb-10">
           <span className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full glass dark:glass text-xs font-semibold uppercase tracking-[0.2em] text-primary mb-5">
@@ -634,7 +639,10 @@ export default function MultiStoreDiscovery() {
             )}
           </>
         )}
-      </div>
-    </section>
+          </div>
+        </section>
+      </main>
+      <Footer />
+    </>
   )
 }

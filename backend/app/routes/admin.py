@@ -159,12 +159,12 @@ router = APIRouter(prefix='/api/admin', tags=['admin'])
 
 _bearer = HTTPBearer(auto_error=False)
 
-DEFAULT_DEV_ADMIN_KEY = 'styleverse-dev-admin-key'
-
-
 def get_admin_api_key() -> str:
     """Resolve the expected admin key from configuration."""
-    return os.getenv('ADMIN_API_KEY', DEFAULT_DEV_ADMIN_KEY)
+    key = os.getenv('ADMIN_API_KEY')
+    if key is None:
+        raise ValueError("ADMIN_API_KEY environment variable is not set. Please configure it in your .env file.")
+    return key
 
 
 def require_admin_key(x_admin_key: Optional[str] = Header(default=None)) -> None:

@@ -164,6 +164,12 @@ export default function ProductCard({
               {product.name}
             </h3>
 
+            {product.store && (
+              <p className="text-[11px] sm:text-xs text-gray-500 dark:text-gray-400 mb-2">
+                Available at {product.store}
+              </p>
+            )}
+
             {product.category && (
               <p className="text-[11px] sm:text-xs text-gray-500 dark:text-gray-400 mb-2 uppercase tracking-wide">
                 {product.category}

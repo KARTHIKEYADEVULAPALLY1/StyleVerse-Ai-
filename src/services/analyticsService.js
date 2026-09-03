@@ -15,8 +15,9 @@
 
 import { getStoredToken } from './authService'
 
-const ROOT_URL = (import.meta.env?.VITE_API_BASE_URL || 'http://127.0.0.1:8000').replace(/\/+$/, '')
-const EVENTS_API_URL = import.meta.env?.VITE_EVENTS_API_URL || `${ROOT_URL}/api/events`
+import { ApiEndpoints, getApiBaseUrl } from '../config/api.js'
+
+const EVENTS_API_URL = ApiEndpoints.events()
 
 const SESSION_KEY = 'styleverse-sid'
 

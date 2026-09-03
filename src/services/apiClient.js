@@ -1,10 +1,9 @@
 /**
  * Centralized API client for StyleVerse.
  *
- * Provides a single `apiFetch()` wrapper used by every service file,
+ * @fileoverview This module provides a single `apiFetch()` wrapper used by every service file,
  * with typed error classes, timeout handling via AbortController,
- * optional exponential-backoff retries, and user-friendly error
- * messages.
+ * optional exponential-backoff retries, and user-friendly error messages.
  *
  * All custom errors extend `ApiError` so consumers can do:
  *
@@ -14,14 +13,19 @@
  *   }
  *
  * Conventions:
- *   - `options.baseUrl` overrides the per-call base URL.
- *   - `options.token` attaches `Authorization: Bearer <token>`.
- *   - `options.timeout` defaults to 15 000 ms.
- *   - `options.retries` defaults to 0 (opt-in).  Only retried for
- *     network errors, timeouts, and 5xx / 429 responses.
- *   - On 401, a `styleverse:auth:unauthorized` CustomEvent is
- *     dispatched on `window` so `AuthContext` can react.
+ * - `options.baseUrl` overrides the per-call base URL.
+ * - `options.token` attaches `Authorization: Bearer <token>`.
+ * - `options.timeout` defaults to 15000 ms.
+ * - `options.retries` defaults to 0 (opt-in). Only retried for
+ *   network errors, timeouts, and 5xx/429 responses.
+ * - On 401, a `styleverse:auth:unauthorized` CustomEvent is
+ *   dispatched on `window` so `AuthContext` can react.
  */
+
+// ---------------------------------------------------------------------------
+// Imports
+// ---------------------------------------------------------------------------
+import { getApiBaseUrl } from '../config/api.js'
 
 // ---------------------------------------------------------------------------
 // Error classes
@@ -203,16 +207,14 @@ function sleep(ms) {
 /**
  * Resolve the effective base URL.  Priority:
  *   1. options.baseUrl (per-call override)
- *   2. import.meta.env.VITE_API_BASE_URL (global)
- *   3. sensible localhost default
+ *   2. VITE_API_URL from centralized config
+ *   3. NO fallback - must be explicitly configured
  */
 function resolveBaseUrl(options) {
     if (options.baseUrl) return options.baseUrl
-    if (typeof import.meta !== 'undefined' && import.meta.env) {
-        const envBase = import.meta.env.VITE_API_BASE_URL
-        if (envBase) return envBase
-    }
-    return 'http://127.0.0.1:8000'
+
+    // Use centralized config - no hardcoded fallback
+    return getApiBaseUrl()
 }
 
 // ---------------------------------------------------------------------------

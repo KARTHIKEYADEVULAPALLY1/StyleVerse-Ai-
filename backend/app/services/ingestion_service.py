@@ -255,6 +255,9 @@ def ingest_external_products(
             else:
                 product = match
                 stats['products_matched'] += 1
+                # Keep matched catalog records aligned with the canonical
+                # category contract used for newly created products.
+                product.category = normalize_category(external.category)
                 # Enrich an existing product only where it has no data yet.
                 if not (product.description or '').strip() and external.description:
                     product.description = external.description.strip()[:500]

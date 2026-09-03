@@ -1,6 +1,7 @@
 export const navItems = [
   { label: 'Home', href: '#home' },
   { label: 'Explore', href: '#explore' },
+  { label: 'Discover', href: '/discover' },
   { label: 'AI Search', href: '#ai-search' },
   { label: 'Virtual Try-On', href: '#try-on' },
   { label: 'AI Stylist', href: '#stylist' },

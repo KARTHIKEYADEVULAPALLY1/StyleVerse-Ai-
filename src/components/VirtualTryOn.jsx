@@ -21,6 +21,7 @@ import { trackVirtualTryOnUsed } from '../services/analyticsService'
 import ProductImage from './ui/ProductImage'
 import { useToast } from './ui/Toast'
 import { getErrorMessage } from '../services/apiClient'
+import { getApiBaseUrl } from '../config/api'
 
 const fitMetrics = [
   { label: 'Shoulder Fit', value: 92, color: '#FF2E88' },
@@ -167,7 +168,7 @@ export default function VirtualTryOn() {
       const processResponse = await processTryOn(result.upload_id, selectedProductId)
 
       if (processResponse?.status === 'completed' && processResponse?.result_image) {
-        const backendBaseUrl = (import.meta.env.VITE_TRYON_API_URL?.replace(/\/api\/try-on\/?$/, '') || import.meta.env.VITE_API_BASE_URL || 'http://127.0.0.1:8000').replace(/\/+$/, '')
+        const backendBaseUrl = getApiBaseUrl()
         setGeneratedImageUrl(`${backendBaseUrl}${processResponse.result_image}`)
         setUploadState('success')
         toast.success('Virtual try-on complete!')
@@ -214,7 +215,7 @@ export default function VirtualTryOn() {
           <div className="inline-flex items-center gap-2 px-5 py-2.5 rounded-full glass dark:glass mb-6 border border-primary/20">
             <Sparkles className="w-4 h-4 text-primary" />
             <span className="text-sm tracking-couture uppercase text-gray-600 dark:text-gray-300">
-              AI-Powered Try-On
+              Virtual Try-On Demo
             </span>
           </div>
           <h2 className="font-display text-4xl sm:text-5xl font-normal tracking-tight">
@@ -326,7 +327,7 @@ export default function VirtualTryOn() {
                       >
                         <span className="flex items-center justify-center gap-2">
                           <Sparkles className="w-4 h-4" />
-                          Try This Look
+                          Try On
                         </span>
                       </MagneticButton>
                       <MagneticButton
@@ -480,7 +481,7 @@ export default function VirtualTryOn() {
                             />
                             <span className="absolute bottom-2 left-2 bg-black/60 backdrop-blur-sm text-white text-[10px] px-2 py-1 rounded-full flex items-center gap-1">
                               <Sparkles className="w-3 h-3 text-primary" />
-                              AI Generated
+                              Virtual Try-On Demo
                             </span>
                           </div>
                         </div>
@@ -616,7 +617,7 @@ export default function VirtualTryOn() {
                   </li>
                   <li className="flex items-start gap-2">
                     <span className="w-5 h-5 rounded-full btn-fashion text-white text-xs flex items-center justify-center shrink-0 mt-0.5">3</span>
-                    Tap &ldquo;Try This Look&rdquo; and our AI applies the garment to your photo
+                    Tap &ldquo;Try On&rdquo; and the demo applies the garment to your photo
                   </li>
                 </ol>
               </div>

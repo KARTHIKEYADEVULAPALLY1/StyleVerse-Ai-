@@ -185,7 +185,13 @@ def discover_products(
             for o in all_offers
             if not merchant_filter or (o.store or '').strip().lower() == merchant_filter
         ]
-        in_stock = [o for o in scoped if _is_in_stock(o)]
+        in_stock = [
+            o
+            for o in scoped
+            if _is_in_stock(o) and resolve_outbound_url(o, product.name)
+        ]
+        if not in_stock:
+            continue
         best = in_stock[0] if in_stock else None  # never an unavailable offer
 
         effective_price = _effective_price(product, scoped)
@@ -263,5 +269,4 @@ def discover_products(
             'subcategories': sorted(all_subcategories),
         },
     }
-
 

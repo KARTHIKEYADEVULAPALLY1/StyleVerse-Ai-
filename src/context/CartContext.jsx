@@ -1,7 +1,6 @@
 import { createContext, useContext, useEffect, useMemo, useState } from 'react'
 import { useAuth } from './AuthContext'
 import { addCartItem, fetchCart, removeCartItem, updateCartItem } from '../services/cartService'
-import { createOrder } from '../services/orderService'
 import { trackCartAdded, trackCartRemoved } from '../services/analyticsService'
 import { useToast } from '../components/ui/Toast'
 import { getErrorMessage } from '../services/apiClient'
@@ -13,7 +12,6 @@ export function CartProvider({ children }) {
   const toast = useToast()
   const [items, setItems] = useState([])
   const [loading, setLoading] = useState(false)
-  const [placingOrder, setPlacingOrder] = useState(false)
   const [error, setError] = useState(null)
 
   const refreshCart = async (currentToken) => {
@@ -168,25 +166,6 @@ export function CartProvider({ children }) {
     }
   }
 
-  const placeOrder = async () => {
-    if (!isAuthenticated || !token) return null
-
-    try {
-      setPlacingOrder(true)
-      setError(null)
-      const createdOrder = await createOrder(token)
-      setItems([])
-      toast.success('Order placed successfully')
-      return createdOrder
-    } catch (err) {
-      setError(getErrorMessage(err))
-      toast.error(getErrorMessage(err))
-      return null
-    } finally {
-      setPlacingOrder(false)
-    }
-  }
-
   const totalItems = cartItems.reduce((sum, item) => sum + item.quantity, 0)
   const grandTotal = cartItems.reduce((sum, item) => sum + item.subtotal, 0)
 
@@ -196,13 +175,11 @@ export function CartProvider({ children }) {
     totalItems,
     grandTotal,
     loading,
-    placingOrder,
     error,
     addToCart,
     updateQuantity,
     removeFromCart,
     clearCart,
-    placeOrder,
   }
 
   return <CartContext.Provider value={value}>{children}</CartContext.Provider>
@@ -217,13 +194,11 @@ export function useCart() {
       totalItems: 0,
       grandTotal: 0,
       loading: false,
-      placingOrder: false,
       error: null,
       addToCart: async () => {},
       updateQuantity: async () => {},
       removeFromCart: async () => {},
       clearCart: async () => {},
-      placeOrder: async () => null,
     }
   }
   return context
