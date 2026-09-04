@@ -37,6 +37,12 @@ INITIAL_MERCHANTS: List[dict] = [
         'website_url': 'https://www.flipkart.com',
         'logo_url': '',
     },
+    {
+        'name': 'tentree',
+        'slug': 'tentree',
+        'website_url': 'https://www.tentree.com',
+        'logo_url': '',
+    },
 ]
 
 

@@ -21,14 +21,14 @@ def _admin_key(monkeypatch):
 
 
 def seeded_offer(db, store='Ajio', **overrides):
-    """First seeded offer of the given store (has a search-URL fallback)."""
-    # Keep the fixtures deterministic and ensure analytics tests exercise
-    # multiple products rather than four store offers for product 1.
-    preferred_product = {'Ajio': 1, 'Myntra': 2, 'Amazon': 3, 'Flipkart': 4}.get(store)
-    query = db.query(ProductOffer).filter(ProductOffer.store == store)
-    offer = query.filter(ProductOffer.product_id == preferred_product).first() if preferred_product else None
-    offer = offer or query.first()
-    assert offer is not None, f'expected a seeded {store} offer'
+    """Return a curated tentree offer for a distinct product."""
+    preferred_product = {'Ajio': 1, 'Myntra': 2, 'Amazon': 3, 'Flipkart': 4}.get(store, 1)
+    offer = (
+        db.query(ProductOffer)
+        .filter(ProductOffer.store == 'tentree', ProductOffer.product_id == preferred_product)
+        .first()
+    )
+    assert offer is not None, f'expected a seeded tentree offer for product {preferred_product}'
     return offer
 
 
@@ -191,10 +191,10 @@ def test_merchant_click_summary_aggregates(client, seeded_db):
     body = response.json()
     assert body['total_clicks'] == 3
     assert body['unique_products'] == 2
-    assert body['active_merchants'] == 2
-    assert body['top_merchant'] == 'Ajio'          # 2 clicks vs Myntra's 1
+    assert body['active_merchants'] == 1
+    assert body['top_merchant'] == 'tentree'
     by_merchant = {r['merchant']: r['clicks'] for r in body['clicks_by_merchant']}
-    assert by_merchant == {'Ajio': 2, 'Myntra': 1}
+    assert by_merchant == {'tentree': 3}
     assert sum(r['clicks'] for r in body['clicks_by_date']) == 3
 
 
@@ -209,8 +209,7 @@ def test_merchant_analytics_rows_sorted_by_clicks(client, seeded_db):
         '/api/admin/analytics/merchants?days=30', headers=ADMIN_HEADER
     ).json()
     clicks_by_name = {row['merchant']: row['clicks'] for row in rows}
-    assert clicks_by_name['Ajio'] == 2
-    assert clicks_by_name['Amazon'] >= 1
+    assert clicks_by_name['tentree'] == 3
     # Sorted busiest-first.
     click_values = [row['clicks'] for row in rows]
     assert click_values == sorted(click_values, reverse=True)

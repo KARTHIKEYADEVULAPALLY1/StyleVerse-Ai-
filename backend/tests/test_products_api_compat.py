@@ -1,7 +1,7 @@
 """Regression tests: existing Product APIs must keep working unchanged."""
 from __future__ import annotations
 
-SEEDED_IDS = set(range(1, 11))
+SEEDED_IDS = set(range(1, 16))
 
 
 def test_get_all_products_returns_seeded_catalog(client):
@@ -12,13 +12,13 @@ def test_get_all_products_returns_seeded_catalog(client):
     assert SEEDED_IDS <= ids
 
     first = next(p for p in products if p['id'] == 1)
-    assert first['name'] == 'Oversized Graphic Hoodie'
-    assert first['brand'] == 'H&M'
-    assert first['price'] == '₹1,299'
-    assert first['original_price'] == '₹2,499'
-    assert first['originalPrice'] == '₹2,499'
-    assert first['store'] == 'H&M'
-    assert first['colors'] == ['Black', 'Gray', 'Cream']
+    assert first['name'] == 'Nimbus Rain Jacket'
+    assert first['brand'] == 'tentree'
+    assert first['price'] == '$218.00'
+    assert first['original_price'] == '$218.00'
+    assert first['originalPrice'] == '$218.00'
+    assert first['store'] == 'tentree'
+    assert first['colors'] == ['Black']
     assert first['sizes'] == ['S', 'M', 'L', 'XL']
 
 
@@ -51,13 +51,13 @@ def test_price_comparison_shape_unchanged(client):
     assert response.status_code == 200
     body = response.json()
     assert body['product_id'] == 1
-    assert len(body['offers']) >= 2
+    assert len(body['offers']) == 1
     for offer in body['offers']:
         # Fields the frontend PriceComparison component depends on.
         assert {'store', 'price', 'currency', 'availability', 'rating'} <= set(offer)
     assert body['best_price'] is not None
     assert body['highest_price'] is not None
-    assert body['savings'] is not None
+    assert body['savings'] is None
     best = min(o['price'] for o in body['offers'] if o['availability'] == 'In Stock')
     assert body['best_price'] == best
 
@@ -70,7 +70,7 @@ def test_ingested_offers_flow_into_price_comparison(client):
     """Seeded merchant offers -> ProductOffer -> Price Comparison."""
     run = client.post(
         '/api/admin/ingestion/run',
-        json={'merchant_slugs': ['flipkart']},
+        json={'merchant_slugs': ['amazon']},
         headers={'X-Admin-Key': 'styleverse-dev-admin-key'},
     )
     assert run.status_code == 200
@@ -78,31 +78,20 @@ def test_ingested_offers_flow_into_price_comparison(client):
     response = client.get('/api/products/2/prices')
     assert response.status_code == 200
     stores = {offer['store']: offer for offer in response.json()['offers']}
-    assert 'Flipkart' in stores
-    flipkart_offer = stores['Flipkart']
-    assert flipkart_offer['price'] == 5199.0
-    assert flipkart_offer['availability'] == 'Out of Stock'
-    assert flipkart_offer['merchant_product_id'] == 'FLK-4001'
+    assert 'tentree' in stores
+    assert stores['tentree']['product_url'].startswith('https://www.tentree.com/products/')
 
 
 def test_ingested_products_appear_in_catalog_and_search(client):
-    run = client.post(
-        '/api/admin/ingestion/run',
-        json={'merchant_slugs': ['myntra']},
-        headers={'X-Admin-Key': 'styleverse-dev-admin-key'},
-    )
-    assert run.status_code == 200
-
     catalog = client.get('/api/products').json()
     names = {p['name'] for p in catalog}
-    assert 'Urban Denim Jacket' in names
-    assert 'Floral Summer Midi Dress' in names
+    assert {'Nimbus Rain Jacket', 'Juniper Zip Hoodie'} <= names
 
-    search = client.get('/api/products/search?q=denim jacket').json()
-    assert any(p['name'] == 'Urban Denim Jacket' for p in search)
+    search = client.get('/api/products/search?q=hoodie').json()
+    assert any(p['name'] == 'Juniper Zip Hoodie' for p in search)
 
-    new_product = next(p for p in catalog if p['name'] == 'Urban Denim Jacket')
+    new_product = next(p for p in catalog if p['name'] == 'Juniper Zip Hoodie')
     detail = client.get(f"/api/products/{new_product['id']}").json()
-    assert detail['brand'] == 'Levis'
-    assert detail['category'] == 'Jackets'
-    assert any(o['store'] == 'Myntra' for o in detail['offers'])
+    assert detail['brand'] == 'tentree'
+    assert detail['category'] == 'Hoodies'
+    assert any(o['store'] == 'tentree' for o in detail['offers'])

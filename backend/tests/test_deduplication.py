@@ -16,11 +16,11 @@ from app.services.product_matcher import (
 
 def make_external(**overrides) -> ExternalProduct:
     base = {
-        'merchant': 'amazon',
+        'merchant': 'tentree',
         'external_product_id': 'X-1',
-        'name': 'Classic White Sneakers',
-        'brand': 'Nike',
-        'category': 'Footwear',
+        'name': 'Nimbus Rain Jacket',
+        'brand': 'tentree',
+        'category': 'Jackets',
         'price': 4499.0,
     }
     base.update(overrides)
@@ -48,13 +48,13 @@ def test_exact_match_same_brand_name_category(seeded_db):
     """The incoming item must map onto the equivalent seeded catalog product."""
     match = find_matching_product(seeded_db, make_external())
     assert match is not None
-    assert normalize_product_name(match.name) == 'Classic White Sneakers'
-    assert match.brand == 'Nike'
-    assert match.category == 'Sneakers'
+    assert normalize_product_name(match.name) == 'Nimbus Rain Jacket'
+    assert match.brand == 'tentree'
+    assert match.category == 'Jackets'
 
 
 def test_exact_match_prefers_given_candidate(seeded_db):
-    existing = add_product(seeded_db, 'Classic White Sneakers', 'Nike', 'Sneakers')
+    existing = add_product(seeded_db, 'Nimbus Rain Jacket', 'tentree', 'Jackets')
     match = find_matching_product(seeded_db, make_external(), candidates=[existing])
     assert match is not None
     assert match.id == existing.id

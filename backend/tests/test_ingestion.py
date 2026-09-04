@@ -161,37 +161,55 @@ def test_cross_merchant_dedup_maps_to_single_product(seeded_db):
 
 
 def test_ingested_item_matches_existing_seeded_product(seeded_db):
-    # The seeded catalog already contains Nike "Classic White Sneakers" (id 2).
-    existing = seeded_db.get(Product, 2)
+    # The seeded catalog already contains the verified tentree jacket (id 1).
+    existing = seeded_db.get(Product, 1)
     assert existing is not None
 
     before = offer_count(seeded_db)
-    run_connector_ingestion(seeded_db, 'flipkart')
+    products_before = seeded_db.query(Product).count()
+    merchant = get_or_create_merchant(seeded_db, 'matchstore', name='Match Store')
+    ingest_external_products(
+        seeded_db,
+        [
+            ExternalProduct(
+                merchant='matchstore',
+                external_product_id='MATCH-1',
+                name='Nimbus Rain Jacket',
+                brand='tentree',
+                category='Jackets',
+                price=218.0,
+                currency='USD',
+                product_url='https://www.tentree.com/products/mens-rain-jacket',
+                availability='in_stock',
+            )
+        ],
+        merchant,
+    )
 
-    # No new product was created for it - the Flipkart offer attached to id 2.
+    # No new product was created for it - the offer attached to id 1.
     sneaker_products = (
         seeded_db.query(Product)
-        .filter(Product.name == 'Classic White Sneakers')
+        .filter(Product.name == 'Nimbus Rain Jacket')
         .all()
     )
     assert len(sneaker_products) == 1
-    assert sneaker_products[0].id == 2
+    assert sneaker_products[0].id == 1
 
-    flipkart_offer = (
+    match_offer = (
         seeded_db.query(ProductOffer)
         .filter(
-            ProductOffer.product_id == 2,
-            ProductOffer.store == 'Flipkart',
+            ProductOffer.product_id == 1,
+            ProductOffer.store == 'Match Store',
         )
         .first()
     )
-    assert flipkart_offer is not None
-    assert flipkart_offer.merchant_product_id == 'FLK-4001'
-    assert flipkart_offer.availability == 'Out of Stock'
-    assert flipkart_offer.price == 5199.0
-    # Both Flipkart items matched existing seeded products, so both offers were
-    # updated in place rather than duplicated.
-    assert offer_count(seeded_db) == before
+    assert match_offer is not None
+    assert match_offer.merchant_product_id == 'MATCH-1'
+    assert match_offer.availability == 'In Stock'
+    assert match_offer.price == 218.0
+    # The incoming item matched the existing product rather than creating a duplicate.
+    assert seeded_db.query(Product).count() == products_before
+    assert offer_count(seeded_db) == before + 1
 
 
 def test_bad_rows_are_skipped_without_killing_batch(seeded_db):

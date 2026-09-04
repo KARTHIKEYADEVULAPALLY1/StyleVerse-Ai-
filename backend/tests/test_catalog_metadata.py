@@ -32,34 +32,32 @@ def test_metadata_persistence_and_enrichment(db_session: Session):
 def test_search_by_semantic_metadata(db_session: Session):
     seed_initial_products(db_session)
 
-    # "office outfit" should match office occasion / formal items (Blazers, Chinos, Watch, Coat)
-    results = search_products(db_session, 'office outfit')
+    # The curated catalog supports travel/casual discovery rather than the
+    # retired synthetic formalwear catalog.
+    results = search_products(db_session, 'travel jacket')
     assert len(results) > 0
     categories = [r.category for r in results]
-    assert any(cat in categories for cat in ['Blazers', 'Pants', 'Accessories', 'Outerwear'])
+    assert any(cat in categories for cat in ['Jackets', 'Outerwear', 'Fleece'])
 
-    # "black formal dress" should match Silk Slip Dress
-    dress_results = search_products(db_session, 'black formal dress')
-    assert len(dress_results) > 0
-    assert any('Dress' in r.name for r in dress_results)
+    hoodie_results = search_products(db_session, 'green hoodie')
+    assert len(hoodie_results) > 0
+    assert any('Hoodie' in r.name for r in hoodie_results)
 
 
 def test_discovery_filtering_by_metadata(db_session: Session):
     seed_initial_products(db_session)
 
-    # Filter by Formal style
-    formal_res = discover_products(db_session, style='Formal')
-    assert formal_res['total'] > 0
-    for item in formal_res['products']:
+    casual_res = discover_products(db_session, style='Casual')
+    assert casual_res['total'] > 0
+    for item in casual_res['products']:
         styles_lower = [s.lower() for s in item.get('styles', [])]
-        assert 'formal' in styles_lower
+        assert 'casual' in styles_lower
 
-    # Filter by Office occasion
-    office_res = discover_products(db_session, occasion='Office')
-    assert office_res['total'] > 0
-    for item in office_res['products']:
+    travel_res = discover_products(db_session, occasion='Travel')
+    assert travel_res['total'] > 0
+    for item in travel_res['products']:
         occasions_lower = [o.lower() for o in item.get('occasions', [])]
-        assert 'office' in occasions_lower
+        assert 'travel' in occasions_lower
 
     # Filter by Color
     black_res = discover_products(db_session, color='Black')
@@ -69,10 +67,10 @@ def test_discovery_filtering_by_metadata(db_session: Session):
         assert 'black' in colors_lower
 
     # Available filters facet check
-    assert 'categories' in formal_res['available_filters']
-    assert 'styles' in formal_res['available_filters']
-    assert 'occasions' in formal_res['available_filters']
-    assert 'colors' in formal_res['available_filters']
+    assert 'categories' in casual_res['available_filters']
+    assert 'styles' in casual_res['available_filters']
+    assert 'occasions' in casual_res['available_filters']
+    assert 'colors' in casual_res['available_filters']
 
 
 def test_ai_stylist_with_normalized_metadata(db_session: Session):

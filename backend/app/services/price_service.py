@@ -6,6 +6,7 @@ from sqlalchemy.orm import Session
 from app.models.merchant import Merchant
 from app.models.product import Product
 from app.models.product_offer import ProductOffer
+from app.models.merchant import Merchant
 from app.services.freshness_service import FRESH, AGING, freshness_status
 from app.services.merchant_redirect_service import build_visit_path, resolve_outbound_url
 from app.services.product_service import INITIAL_PRODUCTS, get_product_by_id
@@ -44,6 +45,7 @@ def build_offer_rows(product: dict[str, Any]) -> list[dict[str, Any]]:
 
 
 def seed_product_offers(db: Session) -> None:
+    merchant = db.query(Merchant).filter(Merchant.slug == 'tentree').first()
     for product_data in INITIAL_PRODUCTS:
         for offer_data in build_offer_rows(product_data):
             existing = (
@@ -57,8 +59,10 @@ def seed_product_offers(db: Session) -> None:
             if existing:
                 for field in ['price', 'currency', 'availability', 'rating', 'product_url']:
                     setattr(existing, field, offer_data[field])
+                if merchant:
+                    existing.merchant_id = merchant.id
             else:
-                db.add(ProductOffer(**offer_data))
+                db.add(ProductOffer(**offer_data, merchant_id=merchant.id if merchant else None))
     db.commit()
 
 

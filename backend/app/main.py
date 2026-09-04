@@ -205,8 +205,8 @@ def startup_event() -> None:
         try:
             ensure_product_search_columns(db)
             seed_initial_products(db)
-            seed_product_offers(db)
             seed_initial_merchants(db)
+            seed_product_offers(db)
             promote_env_admins(db)
         finally:
             db.close()

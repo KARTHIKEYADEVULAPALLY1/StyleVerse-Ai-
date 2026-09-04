@@ -93,8 +93,8 @@ def engine():
     baseline = SessionLocal()
     try:
         seed_initial_products(baseline)
-        seed_product_offers(baseline)
         seed_initial_merchants(baseline)
+        seed_product_offers(baseline)
         # Seed data uses stable explicit IDs; advance PostgreSQL sequences so
         # tests that insert additional rows receive collision-free IDs.
         for table in ('products', 'product_offers', 'merchants', 'users', 'user_events', 'merchant_clicks'):
@@ -122,14 +122,14 @@ def db_session(engine):
 
 @pytest.fixture()
 def seeded_db(db_session):
-    """db_session pre-seeded with the original catalog, offers, and merchants."""
+    """db_session pre-seeded with the curated catalog, offers, and merchants."""
     from app.services.merchant_service import seed_initial_merchants
     from app.services.price_service import seed_product_offers
     from app.services.product_service import seed_initial_products
 
     seed_initial_products(db_session)
-    seed_product_offers(db_session)
     seed_initial_merchants(db_session)
+    seed_product_offers(db_session)
     return db_session
 
 

@@ -300,6 +300,11 @@ def test_scheduler_runs_due_merchant_end_to_end(seeded_db, monkeypatch):
     merchant.sync_enabled = True
     merchant.feed_type = 'mock'
     merchant.feed_query = None
+    # The curated catalog adds tentree as a configured merchant. Keep this
+    # end-to-end test focused on the mock Flipkart connector.
+    from datetime import datetime, timedelta, timezone
+    for other in seeded_db.query(Merchant).filter(Merchant.id != merchant.id).all():
+        other.next_scheduled_sync = datetime.now(timezone.utc) + timedelta(days=1)
     seeded_db.commit()
 
     # The live database may hold committed sync rows from earlier real usage;

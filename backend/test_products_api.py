@@ -43,8 +43,8 @@ def test_get_all_products():
         # Expect a non-empty catalog (database may grow over time)
         assert len(products) > 0, 'Product catalog should not be empty'
 
-        # Verify all originally seeded products are present in the response.
-        seeded_product_ids = {1, 2, 3, 4, 5, 6, 7, 8, 9, 10}
+        # Verify all curated products are present in the response.
+        seeded_product_ids = set(range(1, 16))
         returned_ids = {p['id'] for p in products}
         missing = sorted(seeded_product_ids - returned_ids)
         assert not missing, f'Missing seeded products: {missing}'
@@ -62,13 +62,13 @@ def test_get_single_product():
         assert res.status == 200
         product = json.loads(res.read().decode('utf-8'))
         assert product['id'] == 1
-        assert product['name'] == 'Oversized Graphic Hoodie'
-        assert product['brand'] == 'H&M'
-        assert product['price'] == '₹1,299'
-        assert product['original_price'] == '₹2,499'
-        assert product['originalPrice'] == '₹2,499'
+        assert product['name'] == 'Nimbus Rain Jacket'
+        assert product['brand'] == 'tentree'
+        assert product['price'] == '$218.00'
+        assert product['original_price'] == '$218.00'
+        assert product['originalPrice'] == '$218.00'
         assert product['sizes'] == ['S', 'M', 'L', 'XL']
-        assert product['colors'] == ['Black', 'Gray', 'Cream']
+        assert product['colors'] == ['Black']
         print(f'  -> Successfully retrieved Product 1: {product["name"]}')
 
 
