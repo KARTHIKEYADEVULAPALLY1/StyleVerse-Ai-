@@ -23,7 +23,7 @@ function parsePriceValue(value) {
 function formatPrice(value) {
   if (value === null || value === undefined || value === '') return null
   const str = String(value)
-  if (str.includes('₹')) return str
+  if (str.includes('₹') || str.includes('$') || str.includes('€') || str.includes('£')) return str
   const num = Number(str.replace(/[^\d.]/g, ''))
   if (isNaN(num)) return str
   return `₹${num.toLocaleString('en-IN')}`

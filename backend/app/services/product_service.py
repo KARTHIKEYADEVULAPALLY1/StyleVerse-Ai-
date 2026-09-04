@@ -15,6 +15,7 @@ except ImportError:  # pragma: no cover
     Vector = None
 
 from app.models.product import Product
+from app.data.curated_catalog import CURATED_PRODUCTS
 
 from app.services.normalization_service import (
     normalize_product_metadata,
@@ -465,6 +466,10 @@ INITIAL_PRODUCTS.extend(
     ]
 )
 
+# Keep the historical seed block above available for migration/test references,
+# but expose only the curated retailer catalog to the application.
+INITIAL_PRODUCTS = CURATED_PRODUCTS
+
 
 
 def normalize_tokens(value: str) -> List[str]:
@@ -638,6 +643,12 @@ def seed_initial_products(db: Session) -> None:
     """Seed initial StyleVerse products and backfill normalized metadata."""
     ensure_product_search_columns(db)
 
+    current_ids = {product_data['id'] for product_data in INITIAL_PRODUCTS}
+    db.query(Product).filter(Product.id.notin_(current_ids)).update(
+        {Product.is_active: False},
+        synchronize_session=False,
+    )
+
     for product_data in INITIAL_PRODUCTS:
         existing = db.query(Product).filter(Product.id == product_data['id']).first()
         if not existing:
@@ -664,6 +675,7 @@ def seed_initial_products(db: Session) -> None:
             )
             db.add(product)
         else:
+            existing.is_active = True
             for field_name in [
                 'name', 'brand', 'category', 'subcategory', 'target_gender',
                 'styles', 'occasions', 'materials', 'seasons', 'description',

@@ -20,6 +20,7 @@ const STORE_COLORS = {
   Myntra: '#FF3F6C',
   Ajio: '#2E5BFF',
   Flipkart: '#2874F0',
+  tentree: '#52745c',
 }
 
 function formatPrice(amount, currency = 'INR') {
@@ -433,4 +434,3 @@ export default function PriceComparison({ productId }) {
     </section>
   )
 }
-

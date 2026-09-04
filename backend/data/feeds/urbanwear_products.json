@@ -1,34 +1,35 @@
 {
-  "merchant": "urbanwear",
+  "merchant": "tentree",
   "products": [
     {
-      "external_product_id": "UW-500",
-      "name": "Highline Puffer Jacket",
-      "brand": "Northpeak",
+      "external_product_id": "TN-004",
+      "name": "Brewster Vest",
+      "brand": "tentree",
       "category": "Outerwear",
-      "description": "Insulated puffer with water-repellent shell",
-      "price": 6499,
-      "currency": "INR",
-      "image_url": "https://images.unsplash.com/photo-1548126032-079a0fb0099d?w=400&q=80",
-      "product_url": "https://urbanwear.example.com/p/highline-puffer",
+      "description": "Lightweight insulated vest for flexible layering",
+      "price": 188,
+      "currency": "USD",
+      "image_url": "/products/representative-vest.svg",
+      "product_url": "https://www.tentree.com/products/mens-puffer-vest-meteorite-black",
       "availability": "in_stock",
-      "rating": 4.6,
-      "colors": ["Black", "Olive"],
-      "sizes": ["M", "L", "XL"]
+      "rating": 4.5,
+      "colors": ["Black"],
+      "sizes": ["S", "M", "L", "XL"]
     },
     {
-      "external_product_id": "UW-501",
-      "name": "Everyday Crew Tee",
-      "brand": "Northpeak",
-      "category": "Tops",
-      "price": 899,
-      "currency": "INR",
-      "image_url": "https://images.unsplash.com/photo-1521572163474-6864f9cf17ab?w=400&q=80",
-      "product_url": "https://urbanwear.example.com/p/everyday-crew-tee",
+      "external_product_id": "TN-005",
+      "name": "Palisade Full Zip",
+      "brand": "tentree",
+      "category": "Fleece",
+      "description": "Recycled microfleece full-zip layer",
+      "price": 98,
+      "currency": "USD",
+      "image_url": "/products/representative-fleece.svg",
+      "product_url": "https://www.tentree.com/products/recycled-microfleece-zip-meteorite-black",
       "availability": "in_stock",
-      "rating": 4.2,
-      "colors": ["White", "Navy"],
-      "sizes": ["S", "M", "L"]
+      "rating": 4.4,
+      "colors": ["Black"],
+      "sizes": ["S", "M", "L", "XL"]
     }
   ]
 }

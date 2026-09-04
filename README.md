@@ -21,7 +21,7 @@ StyleVerse AI unifies discovery into a single cohesive experience:
 - **Semantic Product Search** with natural language and taste matching.
 - **Virtual Try-On Pipeline** compositing catalog garments onto user photos with lighting and scale normalization.
 - **AI Stylist & Outfit Generator** solving multi-criteria outfit assembly within a strict budget.
-- **Multi-Store Price Comparison** across leading fashion retailers (Myntra, Ajio, Amazon, Flipkart, Etsy).
+- **Verified Retailer Discovery** with a small curated tentree catalog and outbound links to original product pages.
 - **Living Style Profile** quantifying real user interactions into dynamic aesthetic preferences and affinity scores.
 
 ---
@@ -50,7 +50,7 @@ StyleVerse AI unifies discovery into a single cohesive experience:
 - **Zero Hallucination**: Preferences derived strictly from verifiable user actions rather than self-reported surveys.
 
 ### 💰 Smart Multi-Store Price Comparison
-- **Aggregate Offer Engine**: Compares pricing and stock status across major retailers (Myntra, Ajio, Amazon, Flipkart).
+- **Offer Engine**: Surfaces the verified retailer price and availability without fabricating competing offers.
 - **Best Price & Savings Calculator**: Automatically identifies the best in-stock deal and calculates savings percentage.
 - **Click Tracking & Outbound Redirect**: Transparent tracking of affiliate/merchant clicks with analytics telemetry.
 

@@ -1,4 +1,4 @@
 external_product_id,name,brand,category,description,price,currency,image_url,product_url,availability,rating,colors,sizes
-ST-900,Streetline Cargo Pants,Urbane,Pants,Rugged cargo pants with six pockets,3299.50,INR,https://images.unsplash.com/photo-1548883354-94bcfe321cbb?w=400&q=80,https://streetline.example.com/p/cargo-pants,in stock,4.3,Khaki|Black,30|32|34
-ST-901,Retro Windbreaker Jacket,Urbane,Jackets,Lightweight windbreaker with hood,4599,INR,https://images.unsplash.com/photo-1551028719-00167b16eac5?w=400&q=80,https://streetline.example.com/p/retro-windbreaker,in stock,4.7,Red|Navy,S|M|L|XL
-ST-902,Broken Price Sneakers,Urbane,Sneakers,This row has an invalid price on purpose,-999,INR,https://images.unsplash.com/photo-1600185365483-26d7a4cc7519?w=400&q=80,https://streetline.example.com/p/broken-price,oos,3.9,Grey,41|42
+TN-001,Nimbus Rain Jacket,tentree,Jackets,Water-resistant everyday rain jacket,218,USD,/products/representative-jacket.svg,https://www.tentree.com/products/mens-rain-jacket,in stock,4.6,Black,S|M|L|XL
+TN-002,Juniper Zip Hoodie,tentree,Hoodies,Soft everyday zip hoodie,98,USD,/products/representative-hoodie.svg,https://www.tentree.com/products/w-juniper-zip-hoodie,in stock,4.5,Green,XS|S|M|L
+TN-003,Sombrio Clip Bag,tentree,Bags,Compact clip bag for daily essentials,30,USD,/products/representative-bag.svg,https://www.tentree.com/products/sombrio-clip-bag-golden-brown,in stock,4.4,Brown,ONE SIZE

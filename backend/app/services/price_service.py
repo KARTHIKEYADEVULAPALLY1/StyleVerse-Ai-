@@ -1,8 +1,6 @@
 from __future__ import annotations
 
 from typing import Any
-from urllib.parse import quote_plus
-
 from sqlalchemy.orm import Session
 
 from app.models.merchant import Merchant
@@ -11,21 +9,6 @@ from app.models.product_offer import ProductOffer
 from app.services.freshness_service import FRESH, AGING, freshness_status
 from app.services.merchant_redirect_service import build_visit_path, resolve_outbound_url
 from app.services.product_service import INITIAL_PRODUCTS, get_product_by_id
-
-STORE_OFFER_TEMPLATES = [
-    {'store': 'Ajio', 'multiplier': 0.92, 'rating_offset': -0.1, 'availability': 'In Stock'},
-    {'store': 'Myntra', 'multiplier': 0.95, 'rating_offset': -0.05, 'availability': 'In Stock'},
-    {'store': 'Amazon', 'multiplier': 1.0, 'rating_offset': 0.0, 'availability': 'In Stock'},
-    {'store': 'Flipkart', 'multiplier': 1.05, 'rating_offset': -0.15, 'availability': 'In Stock'},
-]
-
-STORE_PRODUCT_SEARCH_URLS = {
-    'Ajio': 'https://www.ajio.com/search/?text={query}',
-    'Myntra': 'https://www.myntra.com/{query}',
-    'Amazon': 'https://www.amazon.in/s?k={query}',
-    'Flipkart': 'https://www.flipkart.com/search?q={query}',
-}
-
 
 def parse_currency_value(value: str | int | float | None) -> float:
     if value is None:
@@ -47,24 +30,15 @@ def build_offer_rows(product: dict[str, Any]) -> list[dict[str, Any]]:
     base_rating = float(product.get('rating', 4.0))
     rows: list[dict[str, Any]] = []
 
-    for index, template in enumerate(STORE_OFFER_TEMPLATES):
-        availability = template['availability']
-        if product['id'] == 10 and template['store'] == 'Flipkart':
-            availability = 'Out of Stock'
-
-        rows.append(
-            {
-                'product_id': product['id'],
-                'store': template['store'],
-                'price': round_price(base_price * template['multiplier']),
-                'currency': 'INR',
-                'availability': availability,
-                'rating': round(max(3.5, min(5.0, base_rating + template['rating_offset'])), 1),
-                'product_url': STORE_PRODUCT_SEARCH_URLS[template['store']].format(
-                    query=quote_plus(product['name'])
-                ),
-            }
-        )
+    rows.append({
+        'product_id': product['id'],
+        'store': product['store'],
+        'price': round_price(base_price),
+        'currency': 'USD',
+        'availability': 'In Stock',
+        'rating': base_rating,
+        'product_url': product['product_url'],
+    })
 
     return rows
 
@@ -104,6 +78,10 @@ def serialize_offers(
     Merchant row) and a ``visit_url`` pointing at the backend redirect route,
     so the frontend can always send users to the merchant page.
     """
+    curated_stores = {item['id']: item['store'] for item in INITIAL_PRODUCTS}
+    if product_id in curated_stores:
+        offers = [offer for offer in offers if offer.store == curated_stores[product_id]]
+
     merchant_ids = {offer.merchant_id for offer in offers if offer.merchant_id is not None}
     merchants_by_id: dict[int, Merchant] = {}
     if merchant_ids:
@@ -146,12 +124,15 @@ def get_product_prices(db: Session, product_id: int) -> dict[str, Any] | None:
     if not product:
         return None
 
-    offers = (
+    offers_query = (
         db.query(ProductOffer)
         .filter(ProductOffer.product_id == product_id)
         .order_by(ProductOffer.price.asc(), ProductOffer.store.asc())
-        .all()
     )
+    curated_stores = {item['id']: item['store'] for item in INITIAL_PRODUCTS}
+    if product_id in curated_stores:
+        offers_query = offers_query.filter(ProductOffer.store == curated_stores[product_id])
+    offers = offers_query.all()
 
     in_stock_offers = get_in_stock_offers(offers)
     # Legacy behavior preserved exactly: best/high/savings come from all
