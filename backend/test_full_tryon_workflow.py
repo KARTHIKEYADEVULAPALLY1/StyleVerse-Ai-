@@ -2,12 +2,18 @@
 from __future__ import annotations
 
 from pathlib import Path
+import sys
 
-import requests
+BACKEND_DIR = Path(__file__).resolve().parent
+if str(BACKEND_DIR) not in sys.path:
+    sys.path.insert(0, str(BACKEND_DIR))
+
+from fastapi.testclient import TestClient
 from PIL import Image, ImageDraw
 
-BASE = 'http://127.0.0.1:8000/api/try-on'
-BACKEND_DIR = Path(__file__).resolve().parent
+from app.main import app
+
+client = TestClient(app)
 TEST_PHOTO = BACKEND_DIR / 'test_user_photo.png'
 TEST_RESULT = BACKEND_DIR / 'test_result.jpg'
 
@@ -33,10 +39,9 @@ def test_full_workflow() -> None:
 
     # 1. Upload a real user photo
     with TEST_PHOTO.open('rb') as f:
-        upload_resp = requests.post(
-            f'{BASE}/upload',
+        upload_resp = client.post(
+            '/api/try-on/upload',
             files={'file': ('test_user_photo.png', f, 'image/png')},
-            timeout=10,
         )
     print('Upload status:', upload_resp.status_code)
     upload_data = upload_resp.json()
@@ -45,10 +50,9 @@ def test_full_workflow() -> None:
     assert upload_data['status'] == 'uploaded'
 
     # 2. Process try-on with a real product
-    process_resp = requests.post(
-        f'{BASE}/process',
+    process_resp = client.post(
+        '/api/try-on/process',
         json={'user_image': upload_data['upload_id'], 'product_id': 1},
-        timeout=60,
     )
     print('Process status:', process_resp.status_code)
     process_data = process_resp.json()
@@ -62,8 +66,7 @@ def test_full_workflow() -> None:
 
     # 3. Verify the generated result image is retrievable
     result_path = process_data['result_image']
-    result_url = f'http://127.0.0.1:8000{result_path}'
-    result_resp = requests.get(result_url, timeout=10)
+    result_resp = client.get(result_path)
     print('Result image status:', result_resp.status_code)
     print('Content-Type:', result_resp.headers.get('Content-Type'))
     print('Result image bytes:', len(result_resp.content))
@@ -79,28 +82,26 @@ def test_full_workflow() -> None:
 
 
 def test_invalid_cases() -> None:
+    _ensure_test_photo()
     # Invalid product returns 404
-    upload_resp = requests.post(
-        f'{BASE}/upload',
+    upload_resp = client.post(
+        '/api/try-on/upload',
         files={'file': ('test.png', TEST_PHOTO.read_bytes(), 'image/png')},
-        timeout=10,
     )
     upload_id = upload_resp.json()['upload_id']
 
-    resp = requests.post(
-        f'{BASE}/process',
+    resp = client.post(
+        '/api/try-on/process',
         json={'user_image': upload_id, 'product_id': 99999},
-        timeout=10,
     )
     print('Invalid product =>', resp.status_code)
     assert resp.status_code == 404
     assert 'not found' in resp.json()['detail'].lower()
 
     # Missing image returns 404
-    resp = requests.post(
-        f'{BASE}/process',
+    resp = client.post(
+        '/api/try-on/process',
         json={'user_image': 'a' * 32, 'product_id': 1},
-        timeout=10,
     )
     print('Missing image =>', resp.status_code)
     assert resp.status_code == 404

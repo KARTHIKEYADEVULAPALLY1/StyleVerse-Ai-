@@ -1,4 +1,5 @@
 import { products, parsePrice } from '../data/products'
+import { apiFetch, TimeoutError, NetworkError } from './apiClient.js'
 
 const ASSISTANT_API_URL = String(import.meta.env.VITE_ASSISTANT_API_URL || '').trim().replace(/\/+$/, '')
 const REQUEST_TIMEOUT_MS = 8000
@@ -45,35 +46,26 @@ function fallbackReply(message) {
 }
 
 async function requestBackend(message, history) {
-  const controller = new AbortController()
-  const timeout = window.setTimeout(() => controller.abort(), REQUEST_TIMEOUT_MS)
-
   try {
-    const response = await fetch(ASSISTANT_API_URL, {
+    const data = await apiFetch('', {
+      baseUrl: ASSISTANT_API_URL,
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ message, history }),
-      signal: controller.signal,
+      body: { message, history },
+      timeout: REQUEST_TIMEOUT_MS,
     })
-    const data = await response.json().catch(() => null)
-    if (!response.ok) {
-      throw new Error(data?.detail || `Assistant service returned ${response.status}.`)
-    }
     const reply = typeof data?.reply === 'string' ? data.reply.trim() : ''
     if (!reply) {
       throw new Error('The assistant returned an invalid response.')
     }
     return reply
   } catch (error) {
-    if (error.name === 'AbortError') {
+    if (error instanceof TimeoutError || error.name === 'AbortError') {
       throw new Error('The assistant took too long to respond. Please try again.')
     }
-    if (error.name === 'TypeError') {
+    if (error instanceof NetworkError || (error.name === 'TypeError' && error.message.includes('fetch'))) {
       throw new Error('The assistant is unavailable right now. Please try again shortly.')
     }
     throw error
-  } finally {
-    window.clearTimeout(timeout)
   }
 }
 

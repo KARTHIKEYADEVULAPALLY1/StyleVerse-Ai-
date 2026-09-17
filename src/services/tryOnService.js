@@ -1,4 +1,5 @@
 import { ApiEndpoints } from '../config/api.js'
+import { apiFetch } from './apiClient.js'
 
 const API_BASE_URL = ApiEndpoints.tryOn()
 
@@ -83,24 +84,9 @@ export async function uploadTryOnImage(file, { onProgress, timeout = 30000 } = {
  * @returns {Promise<Object>} Try-on process response
  */
 export async function processTryOn(userImage, productId) {
-  try {
-    const response = await fetch(`${API_BASE_URL}/process`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ user_image: userImage, product_id: Number(productId) }),
-    })
-
-    const data = await response.json().catch(() => null)
-
-    if (!response.ok) {
-      throw new Error(data?.detail || `Try-on processing failed (${response.status})`)
-    }
-
-    return data
-  } catch (error) {
-    if (error.name === 'TypeError' && error.message.includes('fetch')) {
-      throw new Error('Network error. Unable to connect to the try-on server.')
-    }
-    throw error
-  }
+  return apiFetch('/process', {
+    baseUrl: API_BASE_URL,
+    method: 'POST',
+    body: { user_image: userImage, product_id: Number(productId) },
+  })
 }

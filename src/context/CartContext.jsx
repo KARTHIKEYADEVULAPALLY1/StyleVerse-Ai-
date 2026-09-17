@@ -5,7 +5,7 @@ import { trackCartAdded, trackCartRemoved } from '../services/analyticsService'
 import { useToast } from '../components/ui/Toast'
 import { getErrorMessage } from '../services/apiClient'
 
-const CartContext = createContext(null)
+export const CartContext = createContext(null)
 
 export function CartProvider({ children }) {
   const { token, isAuthenticated } = useAuth()
@@ -148,8 +148,21 @@ export function CartProvider({ children }) {
     }
   }
 
-  const clearCart = async () => {
-    if (!isAuthenticated || !token || !items.length) return
+  const clearLocalCart = () => {
+    setItems([])
+    setError(null)
+  }
+
+  const clearCart = async (options = {}) => {
+    if (options?.localOnly) {
+      clearLocalCart()
+      return
+    }
+
+    if (!isAuthenticated || !token || !items.length) {
+      clearLocalCart()
+      return
+    }
 
     try {
       await Promise.all(
@@ -179,7 +192,9 @@ export function CartProvider({ children }) {
     addToCart,
     updateQuantity,
     removeFromCart,
+    clearLocalCart,
     clearCart,
+    refreshCart,
   }
 
   return <CartContext.Provider value={value}>{children}</CartContext.Provider>
@@ -198,7 +213,9 @@ export function useCart() {
       addToCart: async () => {},
       updateQuantity: async () => {},
       removeFromCart: async () => {},
+      clearLocalCart: () => {},
       clearCart: async () => {},
+      refreshCart: async () => {},
     }
   }
   return context

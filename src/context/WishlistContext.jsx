@@ -9,7 +9,7 @@ import { trackWishlistAdded, trackWishlistRemoved } from '../services/analyticsS
 import { useToast } from '../components/ui/Toast'
 import { getErrorMessage } from '../services/apiClient'
 
-const WishlistContext = createContext(null)
+export const WishlistContext = createContext(null)
 
 export function WishlistProvider({ children }) {
   const { token, isAuthenticated } = useAuth()

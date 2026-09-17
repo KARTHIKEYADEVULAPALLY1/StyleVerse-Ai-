@@ -1,4 +1,5 @@
 import { ApiEndpoints } from '../config/api.js'
+import { apiFetch } from './apiClient.js'
 
 const API_BASE_URL = ApiEndpoints.auth()
 const TOKEN_KEY = 'styleverse-token'
@@ -32,32 +33,6 @@ export function removeToken() {
 }
 
 // ---------------------------------------------------------------------------
-// Shared fetch helper
-// ---------------------------------------------------------------------------
-
-async function apiFetch(path, options = {}) {
-  try {
-    const response = await fetch(`${API_BASE_URL}${path}`, {
-      headers: { 'Content-Type': 'application/json', ...options.headers },
-      ...options,
-    })
-
-    const data = await response.json()
-
-    if (!response.ok) {
-      throw new Error(data.detail || `Request failed (${response.status})`)
-    }
-
-    return data
-  } catch (error) {
-    if (error.name === 'TypeError' && error.message.includes('fetch')) {
-      throw new Error('Network error. Unable to connect to the authentication server.')
-    }
-    throw error
-  }
-}
-
-// ---------------------------------------------------------------------------
 // Auth API calls
 // ---------------------------------------------------------------------------
 
@@ -66,11 +41,11 @@ async function apiFetch(path, options = {}) {
  * @returns {{ access_token, token_type, user }}
  */
 export async function signupUser({ name, email, password }) {
-  const data = await apiFetch('/signup', {
+  return apiFetch('/signup', {
+    baseUrl: API_BASE_URL,
     method: 'POST',
-    body: JSON.stringify({ name, email, password }),
+    body: { name, email, password },
   })
-  return data // { access_token, token_type, user }
 }
 
 /**
@@ -78,11 +53,11 @@ export async function signupUser({ name, email, password }) {
  * @returns {{ access_token, token_type, user }}
  */
 export async function loginUser({ email, password }) {
-  const data = await apiFetch('/login', {
+  return apiFetch('/login', {
+    baseUrl: API_BASE_URL,
     method: 'POST',
-    body: JSON.stringify({ email, password }),
+    body: { email, password },
   })
-  return data // { access_token, token_type, user }
 }
 
 /**
@@ -92,7 +67,9 @@ export async function loginUser({ email, password }) {
  */
 export async function getCurrentUser(token) {
   return apiFetch('/me', {
+    baseUrl: API_BASE_URL,
     method: 'GET',
-    headers: { Authorization: `Bearer ${token}` },
+    token,
   })
 }
+

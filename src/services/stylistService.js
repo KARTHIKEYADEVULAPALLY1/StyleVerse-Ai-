@@ -1,35 +1,13 @@
 import { ApiEndpoints } from '../config/api.js'
+import { apiFetch } from './apiClient.js'
 
 const API_BASE_URL = ApiEndpoints.stylist()
 
-async function apiFetch(path, options = {}) {
-  try {
-    const response = await fetch(`${API_BASE_URL}${path}`, {
-      headers: {
-        'Content-Type': 'application/json',
-        ...options.headers,
-      },
-      ...options,
-    })
-
-    const data = await response.json().catch(() => null)
-
-    if (!response.ok) {
-      throw new Error(data?.detail || `Request failed (${response.status})`)
-    }
-
-    return data
-  } catch (error) {
-    if (error.name === 'TypeError' && error.message.includes('fetch')) {
-      throw new Error('Network error. Unable to connect to the stylist service.')
-    }
-    throw error
-  }
-}
-
 export async function recommendOutfit(payload) {
   return apiFetch('/recommend', {
+    baseUrl: API_BASE_URL,
     method: 'POST',
-    body: JSON.stringify(payload),
+    body: payload,
   })
 }
+

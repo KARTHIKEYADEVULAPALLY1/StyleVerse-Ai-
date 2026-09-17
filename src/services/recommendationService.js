@@ -1,4 +1,5 @@
 import { ApiEndpoints } from '../config/api.js'
+import { apiFetch } from './apiClient.js'
 
 const API_BASE_URL = ApiEndpoints.recommendations()
 
@@ -7,18 +8,12 @@ export async function fetchRecommendations(token) {
     return []
   }
 
-  const response = await fetch(`${API_BASE_URL}/recommendations`, {
+  const data = await apiFetch('', {
+    baseUrl: API_BASE_URL,
     method: 'GET',
-    headers: {
-      'Content-Type': 'application/json',
-      Authorization: `Bearer ${token}`,
-    },
+    token,
   })
-
-  const data = await response.json().catch(() => null)
-  if (!response.ok) {
-    throw new Error(data?.detail || 'Unable to load recommendations.')
-  }
 
   return Array.isArray(data) ? data : []
 }
+

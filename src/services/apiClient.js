@@ -242,7 +242,20 @@ async function executeRequest(path, options = {}) {
         signal: externalSignal,
     } = options
 
-    const url = `${resolveBaseUrl(options)}${path}`
+    const base = resolveBaseUrl(options)
+    let url
+    const p = String(path ?? '')
+    if (!p) {
+        url = base
+    } else if (p.startsWith('http://') || p.startsWith('https://')) {
+        url = p
+    } else if (p.startsWith('?') || p.startsWith('#')) {
+        url = `${base}${p}`
+    } else {
+        const normalizedBase = base.replace(/\/+$/, '')
+        const normalizedPath = p.startsWith('/') ? p : `/${p}`
+        url = `${normalizedBase}${normalizedPath}`
+    }
 
     // Compose headers
     const headers = {

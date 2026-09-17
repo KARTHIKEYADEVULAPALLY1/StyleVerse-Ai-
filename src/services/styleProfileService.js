@@ -1,4 +1,5 @@
 import { ApiEndpoints } from '../config/api.js'
+import { apiFetch } from './apiClient.js'
 
 const API_BASE_URL = ApiEndpoints.styleProfile()
 
@@ -12,18 +13,9 @@ export async function fetchStyleProfile(token) {
     return null
   }
 
-  const response = await fetch(`${API_BASE_URL}/style-profile`, {
+  return apiFetch('', {
+    baseUrl: API_BASE_URL,
     method: 'GET',
-    headers: {
-      'Content-Type': 'application/json',
-      Authorization: `Bearer ${token}`,
-    },
+    token,
   })
-
-  const data = await response.json().catch(() => null)
-  if (!response.ok) {
-    throw new Error(data?.detail || 'Unable to load your style profile.')
-  }
-
-  return data
 }

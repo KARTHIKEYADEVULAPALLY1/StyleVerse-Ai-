@@ -3,10 +3,17 @@
 from __future__ import annotations
 
 import base64
+from pathlib import Path
+import sys
 
-import requests
+BACKEND_DIR = Path(__file__).resolve().parent
+if str(BACKEND_DIR) not in sys.path:
+    sys.path.insert(0, str(BACKEND_DIR))
 
-BASE = 'http://127.0.0.1:8000/api/try-on'
+from fastapi.testclient import TestClient
+from app.main import app
+
+client = TestClient(app)
 
 MINIMAL_PNG = base64.b64decode(
     'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg=='
@@ -14,10 +21,9 @@ MINIMAL_PNG = base64.b64decode(
 
 
 def upload_sample_image() -> str:
-    response = requests.post(
-        f'{BASE}/upload',
+    response = client.post(
+        '/api/try-on/upload',
         files={'file': ('sample.png', MINIMAL_PNG, 'image/png')},
-        timeout=10,
     )
     response.raise_for_status()
     return response.json()['upload_id']
@@ -25,10 +31,9 @@ def upload_sample_image() -> str:
 
 def test_process_with_valid_image_and_product() -> None:
     upload_id = upload_sample_image()
-    response = requests.post(
-        f'{BASE}/process',
+    response = client.post(
+        '/api/try-on/process',
         json={'user_image': upload_id, 'product_id': 1},
-        timeout=60,
     )
     response.raise_for_status()
     data = response.json()
@@ -41,30 +46,27 @@ def test_process_with_valid_image_and_product() -> None:
 
 def test_invalid_product_returns_404() -> None:
     upload_id = upload_sample_image()
-    response = requests.post(
-        f'{BASE}/process',
+    response = client.post(
+        '/api/try-on/process',
         json={'user_image': upload_id, 'product_id': 99999},
-        timeout=10,
     )
     assert response.status_code == 404
     print('PASS invalid product returns 404')
 
 
 def test_missing_image_returns_error() -> None:
-    response = requests.post(
-        f'{BASE}/process',
+    response = client.post(
+        '/api/try-on/process',
         json={'user_image': 'a' * 32, 'product_id': 1},
-        timeout=10,
     )
     assert response.status_code == 404
     print('PASS missing uploaded image returns 404')
 
 
 def test_invalid_image_reference_returns_400() -> None:
-    response = requests.post(
-        f'{BASE}/process',
+    response = client.post(
+        '/api/try-on/process',
         json={'user_image': '../secrets.png', 'product_id': 1},
-        timeout=10,
     )
     assert response.status_code == 400
     print('PASS invalid image reference returns 400')

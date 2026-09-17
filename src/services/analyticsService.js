@@ -14,8 +14,8 @@
 // ---------------------------------------------------------------------------
 
 import { getStoredToken } from './authService'
-
-import { ApiEndpoints, getApiBaseUrl } from '../config/api.js'
+import { ApiEndpoints } from '../config/api.js'
+import { apiFetch } from './apiClient.js'
 
 const EVENTS_API_URL = ApiEndpoints.events()
 
@@ -84,13 +84,11 @@ export async function track(eventType, options = {}) {
     }
 
     const token = getStoredToken()
-    await fetch(EVENTS_API_URL, {
+    await apiFetch('', {
+      baseUrl: EVENTS_API_URL,
       method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        ...(token ? { Authorization: `Bearer ${token}` } : {}),
-      },
-      body: JSON.stringify(payload),
+      body: payload,
+      token,
     })
   } catch {
     /* analytics must never surface errors in the UI */

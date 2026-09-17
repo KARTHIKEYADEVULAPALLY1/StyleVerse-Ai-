@@ -1,0 +1,44 @@
+services:
+  - type: web
+    name: styleverse-ai-backend
+    env: python
+    plan: free
+    rootDirectory: backend
+    buildCommand: pip install -r requirements.txt
+    startCommand: uvicorn app.main:app --host 0.0.0.0 --port $PORT
+    envVars:
+      DATABASE_URL:
+        fromSecret: DATABASE_URL
+      JWT_SECRET_KEY:
+        fromSecret: JWT_SECRET_KEY
+      ADMIN_API_KEY:
+        fromSecret: ADMIN_API_KEY
+      FRONTEND_URL_PROD:
+        fromSecret: FRONTEND_URL_PROD
+      FRONTEND_URL_DEV:
+        fromSecret: FRONTEND_URL_DEV
+      FRONTEND_URL_PREVIEW:
+        fromSecret: FRONTEND_URL_PREVIEW
+      TRYON_PROCESSOR_MODE:
+        fromSecret: TRYON_PROCESSOR_MODE
+      MEDIA_STORAGE:
+        fromSecret: MEDIA_STORAGE
+      MEDIA_BASE_URL:
+        fromSecret: MEDIA_BASE_URL
+      MEDIA_LOCAL_ROOT:
+        fromSecret: MEDIA_LOCAL_ROOT
+      ETSY_CLIENT_ID:
+        fromSecret: ETSY_CLIENT_ID
+      ETSY_CLIENT_SECRET:
+        fromSecret: ETSY_CLIENT_SECRET
+      ETSY_ACCESS_TOKEN:
+        fromSecret: ETSY_ACCESS_TOKEN
+      ETSY_REFRESH_TOKEN:
+        fromSecret: ETSY_REFRESH_TOKEN
+      SYNC_INTERVAL_MIN_MINUTES:
+        fromSecret: SYNC_INTERVAL_MIN_MINUTES
+      OFFER_FRESHNESS_DAYS:
+        fromSecret: OFFER_FRESHNESS_DAYS
+      CORS_ORIGINS:
+        fromSecret: CORS_ORIGINS
+    healthCheckPath: /api/health

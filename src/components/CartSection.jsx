@@ -1,19 +1,31 @@
 import { useState } from 'react'
-import { Minus, Plus, ShoppingBag, Trash2, ArrowRight, Package, ShoppingBasket } from 'lucide-react'
+import { useNavigate } from 'react-router-dom'
+import { Minus, Plus, ShoppingBag, Trash2, ArrowRight, Package, ShoppingBasket, Loader2, AlertTriangle } from 'lucide-react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { useCart } from '../context/CartContext'
+import { useAuth } from '../context/AuthContext'
+import { useToast } from './ui/Toast'
+import { createOrder } from '../services/orderService'
 import Reveal from './ui/Reveal'
 import MagneticButton from './ui/MagneticButton'
 import ProductImage from './ui/ProductImage'
 
 export default function CartSection() {
+  const navigate = useNavigate()
+  const { token, isAuthenticated } = useAuth()
+  const toast = useToast()
+  const [isCheckingOut, setIsCheckingOut] = useState(false)
+  const [checkoutError, setCheckoutError] = useState(null)
+
   const {
     cartItems,
     totalItems,
     grandTotal,
     updateQuantity,
     removeFromCart,
+    clearLocalCart,
     clearCart,
+    refreshCart,
     error,
   } = useCart()
 
@@ -35,6 +47,36 @@ export default function CartSection() {
       await removeFromCart(item.productId, item.size)
     } finally {
       setUpdatingKey(null)
+    }
+  }
+
+  const handleCheckout = async () => {
+    if (!isAuthenticated || !token) {
+      navigate('/login', { state: { from: '/#cart' } })
+      return
+    }
+    if (!cartItems.length) return
+
+    try {
+      setIsCheckingOut(true)
+      setCheckoutError(null)
+      const order = await createOrder(token)
+      if (clearLocalCart) {
+        clearLocalCart()
+      } else if (clearCart) {
+        await clearCart({ localOnly: true })
+      }
+      if (refreshCart) {
+        await refreshCart(token)
+      }
+      toast.success('Order placed successfully!')
+      navigate(`/order/${order.id}`)
+    } catch (err) {
+      const msg = err.message || 'Failed to place order. Please try again.'
+      setCheckoutError(msg)
+      toast.error(msg)
+    } finally {
+      setIsCheckingOut(false)
     }
   }
 
@@ -286,8 +328,34 @@ export default function CartSection() {
                 </div>
               </div>
 
-              <p className="mt-6 text-center text-xs leading-relaxed text-gray-500 dark:text-gray-400">
-                Checkout and payment happen securely on the retailer&apos;s site after selecting Shop Now from a product.
+              {checkoutError && (
+                <div className="mt-4 rounded-2xl border border-red-500/30 bg-red-500/10 px-4 py-2.5 text-xs text-red-300 flex items-center gap-2">
+                  <AlertTriangle className="w-4 h-4 text-red-400 shrink-0" />
+                  <span>{checkoutError}</span>
+                </div>
+              )}
+
+              <button
+                type="button"
+                onClick={handleCheckout}
+                disabled={isCheckingOut || !cartItems.length}
+                className="w-full mt-6 py-3.5 px-6 rounded-2xl bg-gradient-to-r from-primary to-secondary text-white font-semibold shadow-glow flex items-center justify-center gap-2 hover:opacity-95 active:scale-[0.99] disabled:opacity-50 disabled:cursor-not-allowed transition-all min-h-[48px]"
+              >
+                {isCheckingOut ? (
+                  <>
+                    <Loader2 className="w-5 h-5 animate-spin" />
+                    <span>Placing Order...</span>
+                  </>
+                ) : (
+                  <>
+                    <span>Proceed to Checkout</span>
+                    <ArrowRight className="w-5 h-5" />
+                  </>
+                )}
+              </button>
+
+              <p className="mt-4 text-center text-xs leading-relaxed text-gray-500 dark:text-gray-400">
+                Secure checkout powered by StyleVerse AI. Your order will be confirmed instantly.
               </p>
             </motion.div>
           </div>

@@ -1,40 +1,28 @@
 import { ApiEndpoints } from '../config/api.js'
+import { apiFetch } from './apiClient.js'
 
 const API_BASE_URL = ApiEndpoints.preferences()
 
-async function apiFetch(token, options = {}) {
-  const response = await fetch(API_BASE_URL, {
-    headers: {
-      'Content-Type': 'application/json',
-      Authorization: `Bearer ${token}`,
-      ...options.headers,
-    },
-    ...options,
-  })
-  const data = await response.json().catch(() => null)
-  if (!response.ok) {
-    throw new Error(data?.detail || 'Unable to save your style preferences.')
-  }
-  return data
-}
-
 export function fetchPreferences(token) {
-  return token ? apiFetch(token) : Promise.resolve(null)
+  if (!token) return Promise.resolve(null)
+  return apiFetch('', { baseUrl: API_BASE_URL, token, method: 'GET' })
 }
 
 export function fetchPreferenceOptions(token) {
-  const url = `${API_BASE_URL}/options`
-  return fetch(url, {
-    headers: token ? { Authorization: `Bearer ${token}` } : {},
-  })
-    .then((res) => (res.ok ? res.json() : null))
-    .catch(() => null)
+  return apiFetch('/options', {
+    baseUrl: API_BASE_URL,
+    token: token || undefined,
+    method: 'GET',
+  }).catch(() => null)
 }
 
 export function savePreferences(token, preferences) {
-  return apiFetch(token, {
+  return apiFetch('', {
+    baseUrl: API_BASE_URL,
+    token,
     method: 'PUT',
-    body: JSON.stringify(preferences),
+    body: preferences,
   })
 }
+
 

@@ -1,30 +1,11 @@
 import { ApiEndpoints, getApiBaseUrl } from '../config/api.js'
+import { apiFetch } from './apiClient.js'
 
 const API_BASE_URL = ApiEndpoints.products()
 
 // Discovery API - construct from base
 const DISCOVERY_API_URL = `${getApiBaseUrl()}/api/discovery`
 
-async function apiFetch(path, options = {}) {
-  try {
-    const response = await fetch(`${API_BASE_URL}${path}`, {
-      headers: { 'Content-Type': 'application/json', ...options.headers },
-      ...options,
-    })
-
-    if (!response.ok) {
-      const data = await response.json().catch(() => null)
-      throw new Error(data?.detail || `Request failed (${response.status})`)
-    }
-
-    return response.json()
-  } catch (error) {
-    if (error.name === 'TypeError' && error.message.includes('fetch')) {
-      throw new Error('Network error. Unable to connect to the products server.')
-    }
-    throw error
-  }
-}
 
 /**
  * Fetch products from the API with optional pagination and filters.
@@ -39,7 +20,7 @@ export async function fetchProducts(params = {}) {
     }
   })
   const queryString = search.toString()
-  const data = await apiFetch(queryString ? `?${queryString}` : '')
+  const data = await apiFetch(queryString ? `?${queryString}` : '', { baseUrl: API_BASE_URL })
   if (Array.isArray(data)) return data
   return data?.items || data?.products || []
 }
@@ -52,7 +33,7 @@ export async function fetchPaginatedProducts(params = {}) {
     }
   })
   const queryString = search.toString()
-  return apiFetch(queryString ? `?${queryString}` : '')
+  return apiFetch(queryString ? `?${queryString}` : '', { baseUrl: API_BASE_URL })
 }
 
 
@@ -63,7 +44,7 @@ export async function fetchPaginatedProducts(params = {}) {
  */
 export async function searchProducts(query = '') {
   const trimmed = String(query || '').trim()
-  return apiFetch(`/search?q=${encodeURIComponent(trimmed)}`)
+  return apiFetch(`/search?q=${encodeURIComponent(trimmed)}`, { baseUrl: API_BASE_URL })
 }
 
 /**
@@ -72,7 +53,7 @@ export async function searchProducts(query = '') {
  * @returns {Promise<Object>}
  */
 export async function fetchProductById(id) {
-  return apiFetch(`/${id}`)
+  return apiFetch(`/${id}`, { baseUrl: API_BASE_URL })
 }
 
 /**
@@ -81,7 +62,7 @@ export async function fetchProductById(id) {
  * @returns {Promise<Object>}
  */
 export async function fetchProductPrices(id) {
-  return apiFetch(`/${id}/prices`)
+  return apiFetch(`/${id}/prices`, { baseUrl: API_BASE_URL })
 }
 
 /**
@@ -112,21 +93,5 @@ export async function fetchDiscovery(params = {}) {
     }
   })
   const queryString = search.toString()
-
-  try {
-    const response = await fetch(
-      `${DISCOVERY_API_URL}${queryString ? `?${queryString}` : ''}`,
-      { headers: { 'Content-Type': 'application/json' } }
-    )
-    if (!response.ok) {
-      const data = await response.json().catch(() => null)
-      throw new Error(data?.detail || `Request failed (${response.status})`)
-    }
-    return response.json()
-  } catch (error) {
-    if (error.name === 'TypeError' && error.message.includes('fetch')) {
-      throw new Error('Network error. Unable to connect to the discovery server.')
-    }
-    throw error
-  }
+  return apiFetch(queryString ? `?${queryString}` : '', { baseUrl: DISCOVERY_API_URL })
 }

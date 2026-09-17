@@ -1,8 +1,11 @@
+import { lazy, Suspense } from 'react'
 import { motion } from 'framer-motion'
 import { ArrowRight, Sparkles, Wand2 } from 'lucide-react'
 import MagneticButton from './ui/MagneticButton'
 import FloatingParticles from './ui/FloatingParticles'
-import HolographicMannequin from './hero/HolographicMannequin'
+import { ThreeDMannequinSkeleton } from './ui/LoadingSkeletons'
+
+const HolographicMannequin = lazy(() => import('./hero/HolographicMannequin'))
 
 export default function Hero() {
   const scrollTo = (id) => {
@@ -105,7 +108,9 @@ export default function Hero() {
           transition={{ duration: 1, delay: 0.3 }}
           className="relative"
         >
-          <HolographicMannequin />
+          <Suspense fallback={<ThreeDMannequinSkeleton />}>
+            <HolographicMannequin />
+          </Suspense>
         </motion.div>
       </div>
 

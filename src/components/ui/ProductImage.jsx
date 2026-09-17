@@ -90,6 +90,7 @@ export default function ProductImage({
   const [resolvedSrc, setResolvedSrc] = useState(null)
   const [fallbackSrc, setFallbackSrc] = useState(null)
   const retryTimeoutRef = useRef(null)
+  const imgRef = useRef(null)
 
   // Normalize props
   const safeType = normalizeType(type)
@@ -124,6 +125,21 @@ export default function ProductImage({
   const handleLoad = useCallback(() => {
     setLoadState('loaded')
   }, [])
+
+  // Additional check for cached images that may not fire onLoad
+  // Run after mount to catch already-cached images
+  useEffect(() => {
+    const checkCachedImage = () => {
+      if (imgRef.current && imgRef.current.complete && imgRef.current.naturalWidth > 0) {
+        setLoadState('loaded')
+      }
+    }
+    // Check immediately after mount
+    checkCachedImage()
+    // Also set up a small interval to catch race conditions
+    const timeoutId = setTimeout(checkCachedImage, 100)
+    return () => clearTimeout(timeoutId)
+  }, [resolvedSrc, fallbackSrc])
 
   const handleError = useCallback(() => {
     if (retryCount < MAX_RETRIES - 1) {
@@ -194,6 +210,7 @@ export default function ProductImage({
 
       {/* Image with fade-in transition */}
       <img
+        ref={imgRef}
         key={`${resolvedSrc || 'fallback'}-${retryCount}`}
         src={imageSrc}
         alt={alt}

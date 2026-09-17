@@ -1,38 +1,16 @@
 import { getStoredToken } from './authService'
 import { ApiEndpoints } from '../config/api.js'
+import { apiFetch } from './apiClient.js'
 
 const ADMIN_API_BASE_URL = ApiEndpoints.admin()
 
-function authHeaders() {
-  const token = getStoredToken()
-  return {
-    'Content-Type': 'application/json',
-    ...(token ? { Authorization: `Bearer ${token}` } : {}),
-  }
-}
-
 async function adminFetch(path, options = {}) {
-  let response
-  try {
-    response = await fetch(`${ADMIN_API_BASE_URL}${path}`, {
-      headers: authHeaders(),
-      ...options,
-    })
-  } catch (error) {
-    if (error.name === 'TypeError' && error.message.includes('fetch')) {
-      throw new Error('Network error. Unable to connect to the admin server.')
-    }
-    throw error
-  }
-
-  const data = await response.json().catch(() => null)
-  if (!response.ok) {
-    // Attach the status so guards can distinguish 401 vs 403.
-    const error = new Error(data?.detail || `Request failed (${response.status})`)
-    error.status = response.status
-    throw error
-  }
-  return data
+  const token = getStoredToken()
+  return apiFetch(path, {
+    baseUrl: ADMIN_API_BASE_URL,
+    token,
+    ...options,
+  })
 }
 
 /**

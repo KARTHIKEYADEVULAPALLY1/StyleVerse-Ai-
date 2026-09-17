@@ -4,12 +4,18 @@ from __future__ import annotations
 
 import base64
 from pathlib import Path
+import sys
 
-import requests
-
-BASE = 'http://127.0.0.1:8000/api/try-on'
 BACKEND_DIR = Path(__file__).resolve().parent
+if str(BACKEND_DIR) not in sys.path:
+    sys.path.insert(0, str(BACKEND_DIR))
+
+from fastapi.testclient import TestClient
+from app.main import app
+
 UPLOADS_DIR = BACKEND_DIR / 'uploads'
+
+client = TestClient(app)
 
 MINIMAL_PNG = base64.b64decode(
     'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg=='
@@ -25,10 +31,9 @@ MINIMAL_JPEG = base64.b64decode(
 
 
 def test_valid_png_upload() -> None:
-    response = requests.post(
-        f'{BASE}/upload',
+    response = client.post(
+        '/api/try-on/upload',
         files={'file': ('ignored-name.png', MINIMAL_PNG, 'image/png')},
-        timeout=10,
     )
     response.raise_for_status()
     data = response.json()
@@ -40,10 +45,9 @@ def test_valid_png_upload() -> None:
 
 
 def test_valid_jpeg_upload() -> None:
-    response = requests.post(
-        f'{BASE}/upload',
+    response = client.post(
+        '/api/try-on/upload',
         files={'file': ('photo.jpg', MINIMAL_JPEG, 'image/jpeg')},
-        timeout=10,
     )
     response.raise_for_status()
     data = response.json()
@@ -53,10 +57,9 @@ def test_valid_jpeg_upload() -> None:
 
 
 def test_invalid_file_is_rejected() -> None:
-    response = requests.post(
-        f'{BASE}/upload',
+    response = client.post(
+        '/api/try-on/upload',
         files={'file': ('notes.txt', b'not-an-image', 'text/plain')},
-        timeout=10,
     )
     assert response.status_code == 400
     print('PASS invalid file rejected')
@@ -64,10 +67,9 @@ def test_invalid_file_is_rejected() -> None:
 
 def test_oversized_file_is_rejected() -> None:
     oversized = MINIMAL_JPEG + (b'0' * (6 * 1024 * 1024))
-    response = requests.post(
-        f'{BASE}/upload',
+    response = client.post(
+        '/api/try-on/upload',
         files={'file': ('large.jpg', oversized, 'image/jpeg')},
-        timeout=20,
     )
     assert response.status_code == 413
     print('PASS oversized file rejected')

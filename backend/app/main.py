@@ -146,20 +146,19 @@ app.include_router(style_profile_router)
 app.include_router(stylist_router)
 app.include_router(try_on_router)
 
+cors_origins_env = os.getenv('CORS_ORIGINS', '')
+prod_origins = os.getenv('FRONTEND_URL_PROD', '')
 dev_origins = os.getenv('FRONTEND_URL_DEV', 'http://localhost:5173,http://127.0.0.1:5173,http://localhost:3000,http://127.0.0.1:3000')
 preview_origins = os.getenv('FRONTEND_URL_PREVIEW', 'http://localhost:4173,http://127.0.0.1:4173')
-prod_origins = os.getenv('FRONTEND_URL_PROD', '')
 
-origins = []
-for origin in dev_origins.split(','):
-    if origin.strip():
-        origins.append(origin.strip())
-for origin in preview_origins.split(','):
-    if origin.strip():
-        origins.append(origin.strip())
-for origin in prod_origins.split(','):
-    if origin.strip():
-        origins.append(origin.strip())
+origins: list[str] = []
+for raw_source in (cors_origins_env, prod_origins, dev_origins, preview_origins):
+    if not raw_source:
+        continue
+    for origin in raw_source.split(','):
+        normalized = origin.strip().rstrip('/')
+        if normalized and normalized not in origins:
+            origins.append(normalized)
 
 app.add_middleware(
     CORSMiddleware,

@@ -2,13 +2,21 @@
 
 from __future__ import annotations
 
-import requests
+from pathlib import Path
+import sys
 
-BASE = 'http://127.0.0.1:8000/api/products'
+BACKEND_DIR = Path(__file__).resolve().parent
+if str(BACKEND_DIR) not in sys.path:
+    sys.path.insert(0, str(BACKEND_DIR))
+
+from fastapi.testclient import TestClient
+from app.main import app
+
+client = TestClient(app)
 
 
 def test_product_prices_return_offers_with_best_price_and_savings() -> None:
-    response = requests.get(f'{BASE}/1/prices', timeout=10)
+    response = client.get('/api/products/1/prices')
     response.raise_for_status()
     data = response.json()
 
@@ -30,7 +38,7 @@ def test_product_prices_return_offers_with_best_price_and_savings() -> None:
 
 
 def test_out_of_stock_offers_are_excluded_from_best_price() -> None:
-    response = requests.get(f'{BASE}/15/prices', timeout=10)
+    response = client.get('/api/products/15/prices')
     response.raise_for_status()
     data = response.json()
 
@@ -46,7 +54,7 @@ def test_out_of_stock_offers_are_excluded_from_best_price() -> None:
 
 
 def test_missing_product_returns_404() -> None:
-    response = requests.get(f'{BASE}/99999/prices', timeout=10)
+    response = client.get('/api/products/99999/prices')
     assert response.status_code == 404
     print('PASS missing product returns 404')
 

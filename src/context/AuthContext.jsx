@@ -9,7 +9,7 @@ import {
 import { useToast } from '../components/ui/Toast'
 import { AUTH_UNAUTHORIZED_EVENT } from '../services/apiClient'
 
-const AuthContext = createContext(null)
+export const AuthContext = createContext(null)
 const USER_KEY = 'styleverse-user'
 
 // ---------------------------------------------------------------------------

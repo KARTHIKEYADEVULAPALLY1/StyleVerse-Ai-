@@ -2,22 +2,28 @@
 
 from __future__ import annotations
 
-import requests
+from pathlib import Path
+import sys
 
-BASE = 'http://127.0.0.1:8000/api'
+BACKEND_DIR = Path(__file__).resolve().parent
+if str(BACKEND_DIR) not in sys.path:
+    sys.path.insert(0, str(BACKEND_DIR))
+
+from fastapi.testclient import TestClient
+from app.main import app
+
+client = TestClient(app)
 
 
 def auth_headers(email: str, password: str) -> dict[str, str]:
-    signup = requests.post(
-        f'{BASE}/auth/signup',
+    signup = client.post(
+        '/api/auth/signup',
         json={'name': 'Rec Tester', 'email': email, 'password': password},
-        timeout=10,
     )
     if signup.status_code == 409:
-        login = requests.post(
-            f'{BASE}/auth/login',
+        login = client.post(
+            '/api/auth/login',
             json={'email': email, 'password': password},
-            timeout=10,
         )
         login.raise_for_status()
         token = login.json()['access_token']
@@ -29,7 +35,7 @@ def auth_headers(email: str, password: str) -> dict[str, str]:
 
 def test_new_user_gets_popular_fallback() -> None:
     headers = auth_headers('rec_new_user@example.com', 'TestPass123!')
-    response = requests.get(f'{BASE}/recommendations', headers=headers, timeout=10)
+    response = client.get('/api/recommendations', headers=headers)
     response.raise_for_status()
     products = response.json()
     assert isinstance(products, list)
@@ -39,35 +45,33 @@ def test_new_user_gets_popular_fallback() -> None:
 
 def test_purchased_products_are_excluded() -> None:
     headers = auth_headers('rec_history_user@example.com', 'TestPass123!')
-    catalog = requests.get(f'{BASE}/products', timeout=10).json()
+    catalog = client.get('/api/products').json()
     assert len(catalog) >= 2
 
     wishlist_product = catalog[0]
     purchase_product = catalog[1]
 
-    wishlist_response = requests.post(
-        f'{BASE}/wishlist/{wishlist_product["id"]}',
+    wishlist_response = client.post(
+        f'/api/wishlist/{wishlist_product["id"]}',
         headers=headers,
-        timeout=10,
     )
     wishlist_response.raise_for_status()
 
-    cart_response = requests.post(
-        f'{BASE}/cart',
+    cart_response = client.post(
+        '/api/cart',
         headers=headers,
         json={
             'product_id': purchase_product['id'],
             'quantity': 1,
             'selected_size': 'M',
         },
-        timeout=10,
     )
     cart_response.raise_for_status()
 
-    order_response = requests.post(f'{BASE}/orders', headers=headers, timeout=10)
+    order_response = client.post('/api/orders', headers=headers)
     order_response.raise_for_status()
 
-    recommendations = requests.get(f'{BASE}/recommendations', headers=headers, timeout=10)
+    recommendations = client.get('/api/recommendations', headers=headers)
     recommendations.raise_for_status()
     recommended_ids = {product['id'] for product in recommendations.json()}
 
@@ -77,7 +81,7 @@ def test_purchased_products_are_excluded() -> None:
 
 
 def test_unauthenticated_request_is_rejected() -> None:
-    response = requests.get(f'{BASE}/recommendations', timeout=10)
+    response = client.get('/api/recommendations')
     assert response.status_code == 401
     print('PASS unauthenticated request rejected')
 

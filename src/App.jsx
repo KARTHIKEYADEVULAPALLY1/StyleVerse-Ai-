@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState, lazy, Suspense } from 'react'
 import { Navigate, Route, Routes, useLocation, Link } from 'react-router-dom'
 import { Loader2, AlertTriangle, Globe } from 'lucide-react'
 import Reveal from './components/ui/Reveal'
@@ -17,28 +17,37 @@ import RecommendationsRail from './components/ui/RecommendationsRail'
 import AIFeatures from './components/AIFeatures'
 import HowItWorks from './components/HowItWorks'
 import FinalCTA from './components/FinalCTA'
-import VirtualTryOn from './components/VirtualTryOn'
-import AIStylist from './components/AIStylist'
 import Wishlist from './components/Wishlist'
 import CartSection from './components/CartSection'
 import About from './components/About'
-import Profile from './components/Profile'
 import Footer from './components/Footer'
-import ProductDetails from './components/ProductDetails'
-import MultiStoreDiscovery from './components/MultiStoreDiscovery'
-import AdminMerchantDashboard from './components/AdminMerchantDashboard'
-import AdminCatalogDashboard from './components/AdminCatalogDashboard'
-import AdminAnalyticsDashboard from './components/AdminAnalyticsDashboard'
-import LoginPage from './components/LoginPage'
-import StyleOnboarding from './components/StyleOnboarding'
-import OrderConfirmation from './components/OrderConfirmation'
-import OrderHistory from './components/OrderHistory'
 import { fetchProducts, searchProducts } from './services/productService'
 import { fetchRecommendations } from './services/recommendationService'
 import { trackSearch } from './services/analyticsService'
 import { filterProducts, priceOptions } from './data/products'
 import { useAuth } from './context/AuthContext'
-import StyleVerseAssistant from './components/StyleVerseAssistant'
+import {
+  RouteLoadingFallback,
+  AdminDashboardSkeleton,
+  VirtualTryOnSkeleton,
+  ProductDetailsSkeleton,
+  DiscoverySkeleton,
+} from './components/ui/LoadingSkeletons'
+
+// Lazy-loaded route views and heavy components
+const VirtualTryOn = lazy(() => import('./components/VirtualTryOn'))
+const AIStylist = lazy(() => import('./components/AIStylist'))
+const Profile = lazy(() => import('./components/Profile'))
+const ProductDetails = lazy(() => import('./components/ProductDetails'))
+const MultiStoreDiscovery = lazy(() => import('./components/MultiStoreDiscovery'))
+const AdminMerchantDashboard = lazy(() => import('./components/AdminMerchantDashboard'))
+const AdminCatalogDashboard = lazy(() => import('./components/AdminCatalogDashboard'))
+const AdminAnalyticsDashboard = lazy(() => import('./components/AdminAnalyticsDashboard'))
+const LoginPage = lazy(() => import('./components/LoginPage'))
+const StyleOnboarding = lazy(() => import('./components/StyleOnboarding'))
+const OrderConfirmation = lazy(() => import('./components/OrderConfirmation'))
+const OrderHistory = lazy(() => import('./components/OrderHistory'))
+const StyleVerseAssistant = lazy(() => import('./components/StyleVerseAssistant'))
 
 function HomePage() {
   const [query, setQuery] = useState('')
@@ -212,8 +221,18 @@ function HomePage() {
         <TrendingProducts products={filteredProducts} loading={loading || filterLoading} error={error} />
         <AIFeatures />
         <HowItWorks />
-        <VirtualTryOn />
-        <AIStylist />
+        <Suspense fallback={<VirtualTryOnSkeleton />}>
+          <VirtualTryOn />
+        </Suspense>
+        <Suspense
+          fallback={
+            <div className="py-24 flex items-center justify-center">
+              <Loader2 className="w-8 h-8 text-primary animate-spin opacity-50" />
+            </div>
+          }
+        >
+          <AIStylist />
+        </Suspense>
         <Wishlist />
         <CartSection />
         <About />
@@ -239,7 +258,11 @@ function ProtectedOrders() {
     return <Navigate to="/login" replace />
   }
 
-  return <OrderHistory />
+  return (
+    <Suspense fallback={<RouteLoadingFallback />}>
+      <OrderHistory />
+    </Suspense>
+  )
 }
 
 function ProtectedDashboard() {
@@ -257,7 +280,11 @@ function ProtectedDashboard() {
     return <Navigate to="/login" replace />
   }
 
-  return <Profile />
+  return (
+    <Suspense fallback={<RouteLoadingFallback />}>
+      <Profile />
+    </Suspense>
+  )
 }
 
 export default function App() {
@@ -278,21 +305,88 @@ export default function App() {
                   <CursorGlow />
                   <div className="noise-overlay" />
 
-                  <Routes>
-                    <Route path="/" element={<HomePage />} />
-                    <Route path="/discover" element={<MultiStoreDiscovery />} />
-                    <Route path="/admin/merchants" element={<AdminMerchantDashboard />} />
-                    <Route path="/admin/catalog" element={<AdminCatalogDashboard />} />
-                    <Route path="/admin/analytics" element={<AdminAnalyticsDashboard />} />
-                    <Route path="/product/:id" element={<ProductDetails />} />
-                    <Route path="/order/:id" element={<OrderConfirmation />} />
-                    <Route path="/orders" element={<ProtectedOrders />} />
-                    <Route path="/profile" element={<ProtectedDashboard />} />
-                    <Route path="/onboarding" element={<StyleOnboarding />} />
-                    <Route path="/login" element={<LoginPage initialMode="login" />} />
-                    <Route path="/signup" element={<LoginPage initialMode="signup" />} />
-                  </Routes>
-                  <StyleVerseAssistant />
+                  <Suspense fallback={<RouteLoadingFallback />}>
+                    <Routes>
+                      <Route path="/" element={<HomePage />} />
+                      <Route
+                        path="/discover"
+                        element={
+                          <Suspense fallback={<DiscoverySkeleton />}>
+                            <MultiStoreDiscovery />
+                          </Suspense>
+                        }
+                      />
+                      <Route
+                        path="/admin/merchants"
+                        element={
+                          <Suspense fallback={<AdminDashboardSkeleton title="Merchant Connectors" />}>
+                            <AdminMerchantDashboard />
+                          </Suspense>
+                        }
+                      />
+                      <Route
+                        path="/admin/catalog"
+                        element={
+                          <Suspense fallback={<AdminDashboardSkeleton title="Catalog Health" />}>
+                            <AdminCatalogDashboard />
+                          </Suspense>
+                        }
+                      />
+                      <Route
+                        path="/admin/analytics"
+                        element={
+                          <Suspense fallback={<AdminDashboardSkeleton title="Analytics & Telemetry" />}>
+                            <AdminAnalyticsDashboard />
+                          </Suspense>
+                        }
+                      />
+                      <Route
+                        path="/product/:id"
+                        element={
+                          <Suspense fallback={<ProductDetailsSkeleton />}>
+                            <ProductDetails />
+                          </Suspense>
+                        }
+                      />
+                      <Route
+                        path="/order/:id"
+                        element={
+                          <Suspense fallback={<RouteLoadingFallback />}>
+                            <OrderConfirmation />
+                          </Suspense>
+                        }
+                      />
+                      <Route path="/orders" element={<ProtectedOrders />} />
+                      <Route path="/profile" element={<ProtectedDashboard />} />
+                      <Route
+                        path="/onboarding"
+                        element={
+                          <Suspense fallback={<RouteLoadingFallback />}>
+                            <StyleOnboarding />
+                          </Suspense>
+                        }
+                      />
+                      <Route
+                        path="/login"
+                        element={
+                          <Suspense fallback={<RouteLoadingFallback />}>
+                            <LoginPage initialMode="login" />
+                          </Suspense>
+                        }
+                      />
+                      <Route
+                        path="/signup"
+                        element={
+                          <Suspense fallback={<RouteLoadingFallback />}>
+                            <LoginPage initialMode="signup" />
+                          </Suspense>
+                        }
+                      />
+                    </Routes>
+                  </Suspense>
+                  <Suspense fallback={null}>
+                    <StyleVerseAssistant />
+                  </Suspense>
                 </div>
               </CartProvider>
             </WishlistProvider>
